@@ -1,0 +1,74 @@
+---
+title: "Abora OS Security Policy and Vulnerability Reporting"
+sidebarTitle: "Security"
+description: "Which Abora OS versions receive security fixes, how to privately report a vulnerability, and what to expect after submitting a report."
+---
+
+Abora OS follows a single supported release line model. Security fixes are applied to the current stable release and published in the next release — there is no backporting to older version lines. If you discover a security issue, please work with the maintainers privately before sharing details publicly so there is time to prepare and publish a fix first.
+
+## Supported Versions
+
+Abora is currently on the **DENALI 3.1.x** line. Only this release line receives security fixes and vulnerability reports.
+
+| Version | Supported |
+|---|---|
+| `3.1.x` | ✅ Yes |
+| `v2.x` | ❌ No |
+| `v1.x` | ❌ No |
+| Older releases | ❌ No |
+
+<Info>
+  In practice this means the latest `3.1.x` release is the one that receives fixes. If you are running an older version, upgrading to the current `3.1.x` release is the appropriate remediation path.
+</Info>
+
+## Reporting a Vulnerability
+
+<Warning>
+  Do not post full exploit details, proof-of-concept code, or reproduction steps in a public GitHub issue. Doing so gives attackers a window before a fix is available.
+</Warning>
+
+<Steps>
+  <Step title="Use GitHub private vulnerability reporting">
+    The preferred path is GitHub's built-in private vulnerability reporting for this repository. Navigate to the **Security** tab on the Abora OS GitHub repo and select **Report a vulnerability**. This keeps the report visible only to maintainers until a fix is published.
+  </Step>
+  <Step title="Contact maintainers directly if private reporting is unavailable">
+    If private vulnerability reporting is not enabled for the repository, reach out to the maintainers through the main project contact path before sharing any details publicly.
+  </Step>
+  <Step title="Include all relevant detail in your report">
+    A thorough initial report reduces the number of follow-up questions and speeds up the response. Include:
+
+    - **Affected version** — which `3.1.x` release you were running
+    - **Where the issue occurs** — the component, script, or configuration path involved
+    - **Steps to reproduce** — the minimum sequence of actions that triggers the issue
+    - **Supporting evidence** — logs, screenshots, or a proof of concept that helps explain the impact
+    - **Scope** — whether you believe the issue affects the **live ISO**, the **installer**, the **updater** (`sudo nixos update`), or the **installed system** after boot
+  </Step>
+</Steps>
+
+## What to Expect After Reporting
+
+Once a report is submitted, the standard response process is:
+
+<Accordion title="Acknowledgement (within 7 days)">
+  The maintainers will acknowledge receipt of the report within 7 days. If you do not hear back within that window, follow up through the same private channel you used to submit the report.
+</Accordion>
+
+<Accordion title="Follow-up questions">
+  If the report lacks detail needed to reproduce or assess the issue, the maintainers will ask follow-up questions through the private reporting channel. Please keep the conversation in that channel until a fix is ready.
+</Accordion>
+
+<Accordion title="Fix, mitigation, or explicit decline">
+  Once the report has been reviewed, the maintainers will either accept it and work on a fix, propose a mitigation if a full fix is not immediately feasible, or explicitly decline the report with an explanation (for example, if the behaviour is intentional or outside the threat model).
+</Accordion>
+
+## Fix and Disclosure Policy
+
+If a report is accepted:
+
+- The fix targets the **current supported release line** — `3.1.x` at present
+- The fix is published in the **next release** of that line
+- Disclosure of the vulnerability details happens at or after the release that contains the fix
+
+<Note>
+  Abora does not currently issue separate security advisories outside of release notes. Fix details will appear in the release notes for the version that resolves the issue.
+</Note>

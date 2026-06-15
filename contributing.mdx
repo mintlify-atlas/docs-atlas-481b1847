@@ -1,0 +1,201 @@
+---
+title: "How to Contribute to Abora OS Development and Changes"
+sidebarTitle: "Contributing"
+description: "Contribution guidelines for Abora OS: what to build and verify before changing anything, how the repo is laid out, and how to keep commits clean."
+---
+
+Abora OS is still a focused project, which means contributions land with more direct impact than they would in a large distribution. The best way to help is to keep changes scoped, test whatever you touch, and resist the temptation to bundle unrelated cleanup into the same commit as a feature. The sections below walk through everything you need to get oriented — from verifying your local build works, to understanding the repo layout, to the exact flow for pushing without clobbering the main branch.
+
+## Before You Change Anything
+
+The single most important prerequisite is being able to build and boot the current ISO yourself. If the baseline is broken for you, it is hard to know whether your change introduced a regression.
+
+<Steps>
+  <Step title="Build the ISO">
+    Run a clean ISO build from the repo root. This exercises the full Nix flake evaluation and copies the finished image into `out/iso/`.
+
+    ```bash
+    make iso
+    ```
+  </Step>
+  <Step title="Boot it in QEMU">
+    Boot the ISO in a QEMU graphical window to confirm the live environment starts correctly.
+
+    ```bash
+    make qemc
+    ```
+  </Step>
+  <Step title="Run the quick checks">
+    If you only want a fast sanity pass without a full ISO build, run the script checks:
+
+    ```bash
+    make check
+    ```
+  </Step>
+</Steps>
+
+<Tip>
+  Use `make qemu-fresh` instead of `make qemc` when you want to simulate a clean install from scratch — it deletes the old QEMU disk image before booting the ISO. Then follow up with `make qemu-disk` to verify the installed system boots without the ISO attached.
+</Tip>
+
+## Repo Layout
+
+Understanding which directory handles what prevents accidental changes in the wrong place. Here is a quick map — see `docs/project-layout.md` for the full detail.
+
+<Accordion title="assets/ — Branding and visual files">
+  Visual and branding files used by the live image, boot flow, wallpapers, and desktop defaults.
+
+  - `assets/bootloader/` — Limine bootloader background and artwork
+  - `assets/plymouth/` — Plymouth splash theme assets
+  - `assets/wallpapers/collection/` — bundled wallpaper images
+  - `assets/wallpaper-themes/` — wallpaper theme configurations
+  - `assets/fastfetch-config.jsonc` — Fastfetch layout config for the live session
+  - `assets/fastfetch-logo.txt` — ASCII art logo shown by Fastfetch
+</Accordion>
+
+<Accordion title="docs/ — Project documentation">
+  Release notes, install and hardware validation checklists, roadmap, and wiki source files.
+
+  - `docs/install-checklist.md`
+  - `docs/release-checklist.md`
+  - `docs/hardware-testing.md`
+  - `docs/roadmap.md`
+  - `docs/wiki/` — extended wiki articles
+</Accordion>
+
+<Accordion title="nix/ — NixOS configuration">
+  The NixOS configuration that builds the live ISO and the installed system modules.
+
+  - `nix/profiles/live.nix` — live ISO profile, live boot service, bundled installer assets
+  - `nix/modules/installed-base.nix` — installed Abora base module
+  - `nix/modules/abora-options.nix` — Abora option layer used by installed configs
+  - `nix/modules/anix.nix` — ANIX NixOS module
+</Accordion>
+
+<Accordion title="scripts/ — Shell scripts">
+  Shell scripts for the live environment, installer, installed commands, ISO builds, release metadata, checks, and QEMU booting.
+
+  - `scripts/abora-boot.sh` — live stage-one boot handoff
+  - `scripts/abora-installer.sh` — Omarchy-inspired Denali installer and reconfiguration TUI
+  - `scripts/abora-desktop-profiles.sh` — supported desktop profile definitions
+  - `scripts/abora-session-setup.sh` — first-session defaults
+  - `scripts/build-iso.sh` — ISO-only build path
+  - `scripts/check-scripts.sh` — repo script and runtime sanity checks
+  - `scripts/check-desktops.sh` — evaluates every supported desktop profile
+  - `scripts/release-metadata.sh` — checksums, manifest, and release notes
+  - `scripts/run-qemu.sh` — QEMU ISO, fresh-disk, disk-only, and serial helpers
+</Accordion>
+
+<Accordion title="vendor/tinypm/ — Vendored TinyPM v4">
+  TinyPM v4 source used for Abora `grab`, `search`, `term`, `start`, `supdate`, and the Abora/ANIX/Nix system bridges. Changes here affect the TinyPM release tarball produced by `make tinypm-package`.
+</Accordion>
+
+## Common Development Tasks
+
+<CardGroup cols={2}>
+  <Card title="Build the ISO" icon="hammer">
+    Standard build for live image and installer iteration.
+
+    ```bash
+    make iso
+    ```
+  </Card>
+  <Card title="Full release bundle" icon="box">
+    Builds ISO + TinyPM package + checksums + manifest + release notes.
+
+    ```bash
+    make release
+    ```
+  </Card>
+  <Card title="Refresh metadata" icon="rotate">
+    Regenerates release artifacts without rebuilding the ISO.
+
+    ```bash
+    make metadata
+    ```
+  </Card>
+  <Card title="Test in QEMU" icon="play">
+    Boot the latest ISO in a graphical window, or use `make qemu-fresh` for a clean disk.
+
+    ```bash
+    make qemc
+    make qemu-fresh
+    ```
+  </Card>
+  <Card title="Script checks" icon="circle-check">
+    Validates syntax, executability, and runtime behaviour of every script.
+
+    ```bash
+    make check
+    ```
+  </Card>
+  <Card title="Desktop profile checks" icon="desktop">
+    Runs `nix-instantiate` against all 21 desktop profiles to catch config regressions.
+
+    ```bash
+    make check-desktops
+    ```
+  </Card>
+</CardGroup>
+
+## Commit Hygiene
+
+Clean commit history makes it easier for everyone to understand what changed and why. A few rules of thumb:
+
+- **One feature or fix per commit.** Do not bundle unrelated cleanup with feature work.
+- **Update docs if the workflow changed.** If you change a `make` target, a script interface, or a build output path, update the relevant docs in the same commit.
+- **Do not leave broken release notes or mismatched version strings behind.**
+- **Run `make check` before pushing.** This validates script syntax, executability, and runtime behaviour across the full script set.
+
+## Pushing When the Remote Has Moved Ahead
+
+If `git push origin main` is rejected because someone else pushed first, use the rebase flow rather than a merge commit:
+
+```bash
+git add -A
+git commit -m "Describe your change"
+git pull --rebase origin main
+git push origin main
+```
+
+<Warning>
+  Do not use `git pull --no-rebase` (merge) if you want to keep the main branch history linear. The rebase flow above is the safe default.
+</Warning>
+
+## Roadmap Context
+
+Knowing where the project is headed helps you understand whether a proposed change fits the current direction. Abora is on the **v3 Denali** track.
+
+<Accordion title="v3 Denali priorities">
+  - Keep the Omarchy-inspired installer style: large Abora wordmark, compact boxed fields, and minimal prompts
+  - Keep install validation strict enough to fail early before expensive `nixos-install` work
+  - Make the installed desktop setup app useful for post-install reconfiguration
+  - Keep the desktop matrix green across all 21 supported desktop environments — GNOME, Plasma, Hyprland, Sway, XFCE, Cinnamon, MATE, Budgie, LXQt, Pantheon, i3, AwesomeWM, Openbox, Niri, River, Qtile, BSPWM, Fluxbox, IceWM, and Herbstluftwm
+  - Add more automated VM install smoke tests after ISO build
+  - Improve hardware test coverage for Wi-Fi laptops, NVIDIA systems, BIOS boot, and UEFI boot
+  - Document known install blockers immediately instead of letting users discover them late
+</Accordion>
+
+<Accordion title="Release direction">
+  - GitHub releases remain the primary public ISO distribution path
+  - Every release bundle must attach: ISO, checksums, manifest, release notes, and TinyPM package
+  - Required before publishing: `make check`, `make check-desktops`, one full VM install, and one installed-system boot
+  - Use `make iso` for fast ISO-only iteration; reserve `make release` for full release bundles
+</Accordion>
+
+## Key Source Areas
+
+<CardGroup cols={2}>
+  <Card title="Nix configuration" icon="snowflake" href="https://github.com/AnimatedGTVR/abora-os/tree/main/nix">
+    Live ISO profile, installed base module, ANIX module, and Abora options layer.
+  </Card>
+  <Card title="Shell scripts" icon="code" href="https://github.com/AnimatedGTVR/abora-os/tree/main/scripts">
+    Boot flow, installer TUI, build helpers, QEMU runners, and release tooling.
+  </Card>
+  <Card title="Assets" icon="image" href="https://github.com/AnimatedGTVR/abora-os/tree/main/assets">
+    Bootloader artwork, Plymouth theme, wallpapers, and Fastfetch config.
+  </Card>
+  <Card title="TinyPM vendor" icon="box" href="https://github.com/AnimatedGTVR/abora-os/tree/main/vendor/tinypm">
+    Vendored TinyPM v4 powering `grab`, `search`, `term`, `start`, and `supdate`.
+  </Card>
+</CardGroup>

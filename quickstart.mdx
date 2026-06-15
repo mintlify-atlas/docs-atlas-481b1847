@@ -1,47 +1,200 @@
 ---
-title: "Quickstart"
-description: "Begin with a guide on the fastest path to a successful outcome"
+title: "Get Started with Abora OS in Minutes"
+sidebarTitle: "Quickstart"
+description: "Build the Abora OS ISO from source, boot it in QEMU, run the Denali installer, and reach a working first boot — all from a single cloned repo."
 ---
 
-Describe how someone begins using your product. What is the first thing they need to do? Are there any prerequisites?
-
-A quickstart should take someone from zero to using your product. They'll get a quick win and a sense of what they can accomplish.
-
-## Prerequisites
-
-Before you begin, you must have:
-
-- Requirement one (for example, Node.js 18+, a free account, an API key)
-- Requirement two (for example, a compatible device, a compatible browser, a compatible operating system)
-
-## Get started
+This quickstart is aimed at developers who want to evaluate Abora OS locally without burning a USB drive. By the end you will have built the ISO from the Abora repo, booted it in QEMU, run the Denali installer, and confirmed the installed system boots correctly. The whole flow takes a few minutes of active work — most of the time is Nix downloading and building packages.
 
 <Steps>
-  <Step title="Install">
-    Describe how to install your product or sign up.
 
-    ```bash
-    npm install your-package
-    ```
-  </Step>
-  <Step title="Configure">
-    Describe any setup or configuration needed before first use.
+<Step title="Install prerequisites">
 
-    ```bash
-    your-cli init
-    ```
-  </Step>
-  <Step title="Run it">
-    Show the first thing a user does to see it working.
+You need two things on the host machine before you start: Nix with flakes enabled, and QEMU.
 
-    ```bash
-    your-cli start
-    ```
-  </Step>
-</Steps>
+**Nix with flakes**
+
+If you do not already have Nix, install it via the [official installer](https://nixos.org/download). Then enable flakes in your Nix configuration:
+
+```sh
+# Add to /etc/nix/nix.conf or ~/.config/nix/nix.conf
+experimental-features = nix-command flakes
+```
+
+**QEMU**
+
+Install QEMU through your system's package manager. On an existing NixOS system:
+
+```sh
+# NixOS — add to environment.systemPackages or use nix-shell
+nix-shell -p qemu
+```
+
+On Ubuntu/Debian:
+
+```bash
+sudo apt install qemu-system-x86
+```
+
+On macOS with Homebrew:
+
+```bash
+brew install qemu
+```
+
+<Note>
+The `make qemu-fresh` and `make qemu-disk` targets in the Abora repo call QEMU directly. QEMU must be available on your `PATH` before running either target.
+</Note>
+
+</Step>
+
+<Step title="Clone the Abora OS repository">
+
+Clone the repo and enter the project directory:
+
+```sh
+git clone https://github.com/AnimatedGTVR/abora-os.git
+cd abora-os
+```
+
+</Step>
+
+<Step title="Build the ISO with `make iso`">
+
+Build the Abora OS live ISO:
+
+```sh
+make iso
+```
+
+This calls `./scripts/build-iso.sh`, which uses `nix build` internally. The first run will take a while as Nix fetches packages. Subsequent builds are much faster because Nix caches the results.
+
+The output ISO lands in the `out/` directory once the build completes. You can also build the full release bundle (ISO + TinyPM package + checksums + release manifest) with `make release`, but `make iso` is the fast path for local testing.
 
 <Tip>
-  Give people a way to get help. This could be a link to a support page, a chat with a customer support agent, or a forum for your product.
-
-  Example: Need help? Reach out to us at [support@yourcompany.com](mailto:support@yourcompany.com).
+Run `make check` to execute the 79 repository script checks before building. Run `make check-desktops` to evaluate all 22 desktop profiles against nixpkgs. Both are optional but recommended before a release.
 </Tip>
+
+</Step>
+
+<Step title="Boot the ISO in QEMU with `make qemu-fresh`">
+
+Start a clean QEMU install test. `qemu-fresh` deletes any existing virtual disk image before booting the ISO, so every run starts from a blank slate:
+
+```sh
+make qemu-fresh
+```
+
+QEMU opens a graphical window. The ISO boots, starts NetworkManager, and launches the Denali installer on `tty1` automatically.
+
+**Installer navigation**
+
+The Denali installer is fully keyboard-driven. You do not need a mouse at any point.
+
+```text
+1-9    Jump directly to a numbered menu item
+↑ ↓    Move selection up or down
+Enter  Confirm current selection
+Esc    Go back or cancel where supported
+```
+
+</Step>
+
+<Step title="Run the Denali installer">
+
+The installer walks through eight steps before touching the disk. Here is the full flow:
+
+```text
+Welcome
+  └─ Network      (Step 1)
+      └─ Identity (Step 2)
+          └─ Desktop selection (Step 3)
+              └─ Starter apps  (Step 4)
+                  └─ Options — ANIX / GitHub CLI (Step 5)
+                      └─ Preflight checks (Step 6)
+                          └─ Disk selection (Step 7)
+                              └─ Confirm + install (Step 8)
+                                  └─ Reboot
+```
+
+Work through each step:
+
+1. **Network** — connect to Wi-Fi via `nmtui` if needed, or continue if you are already on a wired connection.
+2. **Identity** — set hostname, username, timezone, keyboard layout, and password.
+3. **Desktop** — choose one of the 22 desktop environments from the numbered menu.
+4. **Apps** — pick a starter bundle (Fan Favorites, Essentials, Social, Creator, Developer, Gaming, System Tools, or None).
+5. **Options** — enable or disable ANIX; optionally sign in to GitHub CLI.
+6. **Preflight** — the installer checks all required tools, assets, and network access before any disk changes.
+7. **Disk** — select the target disk. In QEMU this is the virtual hard drive. **All data on the selected disk will be erased.**
+8. **Confirm** — review the summary and confirm. The installer partitions the disk, writes the NixOS configuration, validates it, and runs `nixos-install`.
+
+**Disk layout**
+
+Every Abora install creates this GPT partition layout:
+
+| Partition | Size | Purpose |
+|---|---:|---|
+| BIOS boot | 1 MiB | Legacy boot support |
+| EFI system | 512 MiB | UEFI boot |
+| Root | Remaining space | ext4 system root |
+
+<Warning>
+Selecting a disk in Step 7 and confirming in Step 8 will **permanently erase all data** on that disk. In QEMU this only affects the virtual disk image. On real hardware, choose carefully.
+</Warning>
+
+</Step>
+
+<Step title="Boot the installed system with `make qemu-disk`">
+
+When the installer finishes, QEMU auto-powers off. You will see a message in the installer telling you to run `make qemu-disk` on the host:
+
+```sh
+make qemu-disk
+```
+
+This boots the virtual hard drive directly, without the ISO attached. The Limine bootloader appears, then the installed Abora system boots into the desktop you selected.
+
+<Note>
+QEMU auto-powers off after a successful install — it does **not** reboot into the ISO again. This is intentional: running `make qemu` or `make qemu-fresh` after install would boot the ISO and start a fresh install, not the system you just installed. Always use `make qemu-disk` to reach the installed system.
+</Note>
+
+</Step>
+
+<Step title="First-boot checks with `abora doctor` and `anix quickstart`">
+
+After the first login, run these two commands to confirm everything is healthy and to complete the ANIX first-run setup:
+
+```sh
+abora doctor
+```
+
+`abora doctor` checks Flatpak, themes, boot assets, available updates, and ANIX health. It prints a clear pass/fail for each item.
+
+```sh
+anix quickstart
+```
+
+`anix quickstart` completes the ANIX first-run setup: it initialises the local Git repo in `/etc/nixos`, sets up snapshot defaults, and confirms profile availability.
+
+Once both pass, run these to check the wider system state:
+
+```sh
+anix status            # profile, generation, and snapshot state
+tinypm sources         # package source availability (Nix, Flatpak, Snap)
+sudo nixos update      # pull the latest Abora channel and rebuild
+```
+
+</Step>
+
+</Steps>
+
+## What comes next
+
+With the system running, the main things to explore are:
+
+- **`abora config`** — view and change local settings like hostname, timezone, and desktop without editing `.nix` files by hand.
+- **`anix switch nix gaming`** — switch to a different named flake profile.
+- **`grab <package>`** — install an app through the best available source.
+- **`anix save`** — create a local Git snapshot of `/etc/nixos` before making changes.
+
+For a full walkthrough of installing on real hardware or a VM, see the [Installation guide](/installation).

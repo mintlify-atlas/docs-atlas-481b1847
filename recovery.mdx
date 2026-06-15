@@ -1,0 +1,208 @@
+---
+title: "Recovering and Repairing an Abora OS Install"
+sidebarTitle: "Recovery"
+description: "Step-by-step repair paths for a running Abora system — from quick health checks and ANIX rollbacks to live ISO recovery when the system won't boot."
+---
+
+When something goes wrong after an update, a config change, or a failed rebuild, Abora gives you several recovery layers to choose from. The lightest path is `abora doctor` and the ANIX rollback commands, which work from a running terminal. If the system still boots but is in a broken state, the interactive `abora recovery` menu consolidates all the common repair actions in one place. If the system does not boot at all, the live ISO recovery path lets you mount the installed root and rebuild or extract logs from outside the broken environment.
+
+<Warning>
+  If the system does not boot at all, skip directly to the **Live ISO Recovery** section at the bottom of this page. The commands in all other sections require a working shell on the installed system.
+</Warning>
+
+## First Checks
+
+Before reaching for a rollback, run the standard health sequence. These commands are non-destructive and give you a clear picture of where the problem is before you change anything.
+
+```sh
+abora doctor
+anix status
+anix doctor
+anix --gui
+tinypm system
+```
+
+`abora doctor` checks for the presence of core Abora files (`flake.nix`, `abora-local.nix`, Abora update and theme tools, ANIX script, bootloader theme, Plymouth theme), validates the Flathub system remote, confirms the update channel, and runs `anix doctor` internally. `anix status` reports the active profile, generation, flake state, Git snapshot state, and TinyPM status. `tinypm system` shows the Abora, ANIX, and NixOS bridge status from the TinyPM side.
+
+## The `abora recovery` Menu
+
+Running `abora recovery` without arguments opens an interactive menu that bundles the most common repair actions into numbered options.
+
+```sh
+abora recovery
+```
+
+<CardGroup cols={2}>
+  <Card title="1 — Roll back previous generation" icon="rotate-left">
+    Runs `anix rollback nix --now` to switch the system back to the previous NixOS generation immediately.
+  </Card>
+  <Card title="2 — Run support report" icon="file-lines">
+    Runs `abora-support-report` and collects diagnostic information into an archive you can attach when asking for help.
+  </Card>
+  <Card title="3 — Repair Flathub remote" icon="store">
+    Re-adds the Flathub system remote with `flatpak remote-add --system --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo`.
+  </Card>
+  <Card title="4 — Rebuild current config" icon="hammer">
+    Runs `sudo nixos-rebuild switch --flake /etc/nixos#abora` to rebuild and switch to the current configuration without changing anything else.
+  </Card>
+  <Card title="5 — Run ANIX doctor" icon="stethoscope">
+    Runs `anix doctor`, which checks flakes, Git state, system generations, ANIX config validity, and the desktop setting.
+  </Card>
+  <Card title="6 — Run Abora doctor" icon="shield-check">
+    Runs `abora-doctor`, which verifies Abora-specific install assets — config files, update tool, theme sync, support report script, bootloader, and Plymouth theme.
+  </Card>
+</CardGroup>
+
+### Direct Subcommands
+
+Every menu option also has a direct subcommand for use in scripts or when you already know which action you need:
+
+```sh
+abora recovery rollback   # Roll back previous generation (anix rollback nix --now)
+abora recovery report     # Run the support report
+abora recovery flathub    # Repair the Flathub remote
+abora recovery rebuild    # Rebuild current config
+abora recovery anix       # Run ANIX doctor
+abora recovery doctor     # Run Abora doctor
+```
+
+## Rolling Back
+
+### Quick rollback alias
+
+The fastest one-liner for undoing the last rebuild is the `rollback` alias available on installed Abora systems:
+
+```sh
+rollback
+```
+
+### Roll back with ANIX
+
+If you want to inspect generations before committing to a rollback, use ANIX directly:
+
+```sh
+anix generations
+anix rollback nix
+```
+
+`anix generations` lists the recent system generations. `anix rollback nix` rolls back to the previous NixOS generation after a confirmation prompt. Add `--now` to skip the prompt:
+
+```sh
+anix rollback nix --now
+```
+
+### Rebuild the current config directly
+
+If the config file itself is good but the active system is in a bad state, rebuild and switch without touching the generation history:
+
+```sh
+sudo nixos-rebuild switch --flake /etc/nixos#abora
+```
+
+## Test Before Switching
+
+When you are not sure whether a config change will succeed, dry-build it and compare the package closure changes before applying anything to the live system:
+
+```sh
+anix diff nix abora
+anix test nix abora
+```
+
+`anix diff nix abora` does a dry build and then computes the closure diff so you can see exactly which packages would be added, removed, or updated. `anix test nix abora` activates the new configuration for the current boot only — it does not become the default until you run `anix switch`.
+
+<Tip>
+  `anix boot nix stable` builds and sets a profile as the next boot default without switching immediately, which lets you reboot at a time that suits you.
+</Tip>
+
+## Save a Snapshot Before Making Changes
+
+Before any significant repair operation, save a local Git snapshot of `/etc/nixos` so you have a rollback point for the config itself — not just for the Nix generation:
+
+```sh
+anix save "before recovery changes"
+```
+
+ANIX will warn you if it detects possible secrets (API keys, passwords) in the config and recommends moving them to `sops-nix` or `agenix` before proceeding. Snapshots stay local by default and are never pushed unless you explicitly enable it.
+
+## Repair App Sources
+
+If app installs are failing or Flatpak is misbehaving, TinyPM has two quick repair commands:
+
+```sh
+tinypm repair
+tinypm sources
+```
+
+`tinypm repair` runs repair-focused doctor checks across the available package sources. `tinypm sources` shows the current status of native Nix, Flatpak, Snap, and other sources. If the issue is specifically the Flathub remote, use:
+
+```sh
+abora recovery flathub
+```
+
+This re-adds the Flathub system remote using `flatpak remote-add --system --if-not-exists`.
+
+## Generate a Support Report
+
+When you need to share diagnostics with the community or file a bug report, generate a support archive:
+
+```sh
+abora support-report
+```
+
+The command collects system information, recent logs, and Abora config metadata into a single archive. Attach that archive when asking for help in the issue tracker or community channels.
+
+## Live ISO Recovery
+
+<Warning>
+  Use this path only when the installed system does not boot. Attempting these steps on a running system is unnecessary — use the rollback and rebuild commands above instead.
+</Warning>
+
+If the system will not reach a login prompt at all, boot from the Abora ISO and use the live shell to access the installed root from the outside.
+
+<Steps>
+  <Step title="Boot the Abora ISO">
+    Download the latest Abora ISO from the [releases page](https://github.com/AnimatedGTVR/abora-os/releases/latest) and boot from it on your hardware or in your VM. The installer will detect an existing Abora disk and warn you that the ISO is still attached — that warning is expected in this situation.
+  </Step>
+  <Step title="Choose the live shell">
+    At the installer welcome screen, select the option to open a live shell rather than starting the install flow.
+  </Step>
+  <Step title="Mount the installed root partition">
+    Identify your installed root partition and mount it:
+
+    ```sh
+    lsblk
+    mount /dev/sdXn /mnt
+    ```
+
+    Replace `/dev/sdXn` with your actual root partition (for example `/dev/sda3` or `/dev/nvme0n1p3`). If your system uses a separate `/boot` partition, mount it too:
+
+    ```sh
+    mount /dev/sdXm /mnt/boot
+    ```
+  </Step>
+  <Step title="Inspect /mnt/etc/nixos">
+    With the installed root mounted, you can read and edit the NixOS configuration:
+
+    ```sh
+    ls /mnt/etc/nixos
+    cat /mnt/etc/nixos/abora-local.nix
+    ```
+
+    Look for syntax errors, bad option values, or a missing `flake.nix`. The most common cause of a non-booting system after a rebuild is a Nix evaluation error that prevents the bootloader or activation script from completing.
+  </Step>
+  <Step title="Rebuild or extract logs">
+    If the configuration looks correct, attempt a rebuild from the live shell using `nixos-enter`:
+
+    ```sh
+    nixos-enter --root /mnt
+    nixos-rebuild switch --flake /etc/nixos#abora
+    ```
+
+    If you cannot determine the problem from the config alone, copy support logs out before rebooting:
+
+    ```sh
+    cp /mnt/tmp/abora-install.log /home/nixos/
+    journalctl --directory=/mnt/var/log/journal > /home/nixos/journal.txt
+    ```
+  </Step>
+</Steps>

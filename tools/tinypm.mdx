@@ -1,0 +1,314 @@
+---
+title: "TinyPM v4: App Installation and Package Management"
+sidebarTitle: "TinyPM"
+description: "TinyPM v4 handles app installs, package source management, and bridges to ANIX and Abora — keeping each tool focused on what it does best."
+---
+
+TinyPM v4 is the app-installation and package-source layer for Abora OS. Its job is simple: give users a single `grab` command that figures out the best available package source automatically, and provide a system-aware bridge to the ANIX and Abora tools that live alongside it. TinyPM is powered by **Parcel**, the core engine that handles backend detection, multi-source installs, and system identification.
+
+## Mental Model
+
+The three Abora tools divide responsibility clearly so they do not step on each other:
+
+| Tool | Responsibility |
+|---|---|
+| **TinyPM** | App installs, package sources, system bridge |
+| **ANIX** | NixOS profiles, config changes, rollbacks, snapshots |
+| **Abora** | Distro-layer setup, health checks, recovery, updates |
+
+On Abora and other NixOS-family systems, TinyPM detects Nix as the native backend and prefers it for package installs. System-level changes — rebuilds, profile switches, generation rollbacks — still belong in ANIX and Abora.
+
+<Tip>
+  Run `tinypm sources` as your first command after a fresh install. It shows
+  exactly which backends are available on your system before you try to install
+  anything.
+</Tip>
+
+---
+
+## Quick Start
+
+```sh
+tinypm sources          # check which backends are available
+grab firefox            # install through the best available source
+tinypm system           # show Abora/NixOS/ANIX system bridge status
+tinypm doctor           # run health checks
+```
+
+---
+
+## Main Commands
+
+<CardGroup cols={2}>
+  <Card title="grab" icon="box-open">
+    Install an app or package through the best available source. The primary
+    TinyPM command.
+  </Card>
+  <Card title="tinypm search" icon="magnifying-glass">
+    Search for a package across native, Flatpak, and Snap sources
+    simultaneously.
+  </Card>
+  <Card title="tinypm list" icon="list">
+    List installed packages from available sources.
+  </Card>
+  <Card title="tinypm remove" icon="trash">
+    Remove a package. Supports the same source flags as `grab`.
+  </Card>
+  <Card title="tinypm update" icon="arrows-rotate">
+    Update package sources across all available backends.
+  </Card>
+  <Card title="tinypm info" icon="circle-info">
+    Show tracking metadata and install status for a specific package.
+  </Card>
+  <Card title="tinypm managed" icon="bookmark">
+    Show the packages TinyPM has tracked across all backends.
+  </Card>
+  <Card title="tinypm sources" icon="server">
+    Show which native, Flatpak, and Snap sources are available and configured
+    on this system.
+  </Card>
+  <Card title="tinypm repair" icon="wrench">
+    Run repair-focused doctor checks to fix broken or misconfigured package
+    sources.
+  </Card>
+  <Card title="tinypm system" icon="display">
+    Show the Abora/NixOS/ANIX system bridge status: OS layer, native PM,
+    config dir, flake state, and command availability.
+  </Card>
+  <Card title="tinypm anix" icon="code-branch">
+    Forward a command to ANIX. Any `anix` command can be called through this
+    bridge.
+  </Card>
+  <Card title="tinypm abora" icon="circle-dot">
+    Forward a command to the Abora tool layer. Any `abora` command can be
+    called through this bridge.
+  </Card>
+  <Card title="Parcel --version" icon="tag">
+    Show the engine name, runtime version, and a full system report. Use this
+    to confirm which TinyPM version and backend are active.
+  </Card>
+</CardGroup>
+
+---
+
+## Command Reference
+
+### Installing Packages
+
+The primary install command is `grab`. It chooses the best available backend automatically and prompts you if more than one valid source exists.
+
+```sh
+grab firefox
+grab blender
+grab discord
+```
+
+Force a specific source with a flag:
+
+```sh
+# Force native (Nix on Abora)
+grab -n git
+grab --native git
+
+# Force Flatpak
+grab -f org.mozilla.firefox
+grab -flatpak org.mozilla.firefox
+
+# Force Snap
+grab -s code
+grab --snap code
+```
+
+The long-form `tinypm install` also accepts the same flags:
+
+```sh
+tinypm install --nix ripgrep
+tinypm install --flatpak org.gimp.GIMP
+```
+
+### Searching and Listing
+
+```sh
+tinypm search blender       # search all sources for "blender"
+tinypm list                 # list installed packages
+tinypm list -f              # list Flatpak packages only
+tinypm managed              # show TinyPM-tracked packages
+tinypm info firefox         # show tracking and install status
+```
+
+### Updating and Removing
+
+```sh
+tinypm update               # update all sources
+tinypm remove htop          # remove a package
+tinypm remove -f org.gimp.GIMP
+```
+
+### Diagnostics
+
+```sh
+tinypm sources              # show available backends
+tinypm doctor               # run health checks
+tinypm doctor --fix         # attempt automatic repair
+tinypm repair               # repair-focused checks (alias for doctor --fix flow)
+tinypm system               # show OS/ANIX/Abora bridge status
+Parcel --version            # engine version and system report
+```
+
+---
+
+## Quick Aliases
+
+TinyPM ships short single-letter and short-word aliases for all common commands:
+
+| Alias | Equivalent |
+|---|---|
+| `tinypm i <pkg>` | `tinypm install <pkg>` |
+| `tinypm s <query>` | `tinypm search <query>` |
+| `tinypm r <pkg>` | `tinypm remove <pkg>` |
+| `tinypm u` | `tinypm update` |
+| `tinypm ls` | `tinypm list` |
+| `tinypm src` | `tinypm sources` |
+| `tinypm fix` | `tinypm repair` |
+| `tinypm sys` | `tinypm system` |
+| `tinypm ax <cmd>` | `tinypm anix <cmd>` |
+
+```sh
+tinypm i firefox
+tinypm s blender
+tinypm r htop
+tinypm u
+tinypm ls
+tinypm src
+tinypm fix
+tinypm sys
+tinypm ax doctor
+```
+
+---
+
+## Supported Package Sources
+
+Parcel detects and supports the following native package managers automatically:
+
+| Manager | Distro family |
+|---|---|
+| `nix` | Abora OS, NixOS, any NixOS-family system |
+| `apt` | Debian, Ubuntu, and derivatives |
+| `dnf` | Fedora, RHEL, and derivatives |
+| `pacman` | Arch Linux and derivatives |
+| `xbps` | Void Linux |
+| `zypper` | openSUSE |
+| `apk` | Alpine Linux |
+| `emerge` | Gentoo (Portage) |
+| `brew` | macOS / Linux Homebrew |
+
+In addition to native managers, TinyPM supports:
+
+- **Flatpak** — sandboxed app installs from Flathub and other remotes
+- **Snap** — Canonical's universal package format
+
+<Note>
+  On Abora and NixOS-family systems, TinyPM identifies `nix` as the native
+  backend. Systems with `ID=abora`, `ID=nixos`, or `ID_LIKE=nixos` in
+  `/etc/os-release` are all treated as NixOS-family. The `syspm` command on
+  Abora routes through the Nix path.
+</Note>
+
+---
+
+## Abora and ANIX Bridge
+
+TinyPM does not rebuild the OS or switch NixOS profiles. Instead it delegates to the tools that own those operations, so you can access everything from a single command surface.
+
+```sh
+# Show full system bridge status
+tinypm system
+
+# ANIX commands via TinyPM
+tinypm anix status
+tinypm anix save
+tinypm anix switch nix gaming
+tinypm anix doctor
+
+# Abora commands via TinyPM
+tinypm abora doctor
+tinypm abora recovery
+tinypm abora update
+```
+
+The bridge commands call `anix` or `abora` directly. If the tool is not available on your system, TinyPM prints a clear error explaining what is missing.
+
+### How the Bridge Works
+
+`tinypm system` prints a structured report that shows the OS layer, native package manager, install strategy, config directory, flake state, generation state, and availability of `abora`, `anix`, `nix`, and `nixos-rebuild`. This report is what drives the bridge logic.
+
+```sh
+tinypm system
+```
+
+Example output fields:
+
+```text
+Parcel system layer
+------------------------------------------------------------
+  system             Abora OS
+  os                 Abora Linux
+  native_pm          nix
+  strategy           Nix profile packages, with Abora/ANIX system tools available
+  config_dir         /etc/nixos
+  flake              present
+  generation         active
+  abora              available
+  anix               available
+  nix                available
+  nixos-rebuild      available
+```
+
+---
+
+## Installing TinyPM
+
+On an installed Abora system with `anix.tinypm.enable = true` in your `anix.nix`, TinyPM installs itself automatically on first login via a systemd user service. No manual steps are needed.
+
+To install manually from the vendored source included in the Abora repository:
+
+```sh
+cd vendor/tinypm
+TINYPM_FLAVOR=abora ./install.sh
+```
+
+The installer creates the following commands under `~/.local/bin`:
+
+| Command | Role |
+|---|---|
+| `tinypm` / `tiny` | Main CLI |
+| `grab` | Install-first entrypoint |
+| `Parcel` | Engine version and system report |
+| `syspm` | Native-only wrapper |
+| `version` | Quick version check |
+
+After installing, open a new shell or run `hash -r`, then test with:
+
+```sh
+grab firefox
+tinypm system
+tinypm doctor
+Parcel --version
+```
+
+To run TinyPM directly from the vendor directory without installing:
+
+```sh
+vendor/tinypm/tinypm --version
+vendor/tinypm/tinypm sources
+vendor/tinypm/tinypm system
+vendor/tinypm/scripts/e2e-smoke.sh
+```
+
+<Warning>
+  The ANIX and Abora bridge commands (`tinypm anix`, `tinypm abora`) only work
+  on an installed Abora system where those tools are present. On a live ISO or
+  a plain NixOS install without the Abora toolchain, the bridge will tell you
+  what is missing rather than silently doing nothing.
+</Warning>

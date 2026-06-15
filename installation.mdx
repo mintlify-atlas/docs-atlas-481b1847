@@ -1,0 +1,347 @@
+---
+title: "Installing Abora OS on Real Hardware or a VM"
+sidebarTitle: "Installation"
+description: "Walk through every Denali installer step, GPT disk layout, VM notes for VMware, Hyper-V, and VirtualBox, and the post-install first-boot checklist."
+---
+
+This guide covers the full Abora OS installation process — from booting the ISO to completing the first-boot setup on an installed system. It applies equally to real hardware and virtual machines. If you want a faster path that uses QEMU and builds the ISO from source, see the [Quickstart](/quickstart) instead.
+
+## Before you begin
+
+Download the latest Abora OS ISO from the [releases page](https://github.com/AnimatedGTVR/abora-os/releases/latest). The DENALI 3.1.4 release asset is named `abora-2026.05.30-x86_64-3.1.4.iso`. Verify the download against the provided `SHA256SUMS-3.1.4.txt` before writing it to a USB drive or attaching it to a VM.
+
+For real hardware, write the ISO to a USB drive with a tool like `dd`, Balena Etcher, or Ventoy. For a VM, attach the ISO as a virtual optical drive before powering on.
+
+## Live boot
+
+When the ISO starts, Abora takes over `tty1` and launches the live boot flow automatically. The live image starts NetworkManager with radio unblock, loads redistributable firmware and microcode for Intel and AMD, and opens the **Denali installer** without requiring any manual intervention.
+
+If the installer exits for any reason, a fallback live shell is available. Run `abora-install` from that shell to restart the installer.
+
+## Installer navigation
+
+The Denali installer is fully keyboard-driven. No mouse is needed at any point.
+
+```text
+1-9    Jump directly to a numbered menu item
+↑ ↓    Move selection up or down
+Enter  Confirm current selection
+Esc    Go back or cancel where supported
+```
+
+## Step-by-step installer walkthrough
+
+The installer is divided into eight named steps. It does not touch the disk until you confirm in Step 8.
+
+<Steps>
+
+<Step title="Step 1 — Network">
+
+The installer starts NetworkManager and checks for an internet connection automatically. If you are on a wired connection that is already up, you will see a "Connected" status and can continue immediately.
+
+For Wi-Fi, choose **Open nmtui** from the menu to use the NetworkManager text UI. You can scan for networks, enter a password, and connect to hidden SSIDs from there. The **Quick Wi-Fi connect** option lets you scan and connect inline without leaving the installer.
+
+<Note>
+A working internet connection is required. The installer fetches packages from the Nix binary cache (`cache.nixos.org`) during `nixos-install`. You can proceed without internet, but the install will almost certainly fail unless all packages are already available locally.
+</Note>
+
+After connecting, choose **Re-check connection** to confirm connectivity, then **Continue**.
+
+</Step>
+
+<Step title="Step 2 — Identity and locale">
+
+Set the five identity values for the installed system:
+
+- **Hostname** — letters, numbers, and hyphens only; must start with a letter or digit (e.g. `my-abora-pc`).
+- **Username** — lowercase letters, numbers, and hyphens; must start with a letter (e.g. `alice`).
+- **Timezone** — a valid zoneinfo name such as `America/New_York`, `Europe/London`, or `UTC`. The installer auto-detects the current timezone as the default.
+- **Console keymap** — the console keyboard layout (e.g. `us`, `de`, `fr`). Auto-detected from the live system.
+- **XKB layout** — the X11/Wayland keyboard layout; usually matches the console keymap (e.g. `us`, `gb`, `de`).
+
+After the locale fields, set a **user password**. You must enter it twice to confirm. Then choose the **root account** mode:
+
+- **Same password as user** — root inherits your user password.
+- **Lock root account** — disables root login; use `sudo` only.
+- **Set separate root password** — choose a distinct password for root.
+
+</Step>
+
+<Step title="Step 3 — Desktop selection">
+
+Choose one of the 22 desktop environments or window managers from the numbered menu. Use number keys to jump directly to any entry.
+
+<Accordion title="Full desktop environment and window manager list">
+
+| Desktop | Type | Display Manager |
+|---|---|---|
+| GNOME | Full DE | GDM |
+| KDE Plasma | Full DE | SDDM |
+| COSMIC | Full DE | COSMIC Greeter |
+| XFCE | Full DE | LightDM |
+| Cinnamon | Full DE | LightDM |
+| MATE | Full DE | LightDM |
+| Budgie | Full DE | LightDM |
+| LXQt | Lightweight DE | SDDM |
+| Pantheon | Full DE | LightDM |
+| Hyprland | Wayland compositor | SDDM (Wayland) |
+| Sway | Wayland compositor | SDDM (Wayland) |
+| Niri | Wayland compositor | SDDM (Wayland) |
+| River | Wayland compositor | SDDM (Wayland) |
+| i3 | Tiling WM | LightDM |
+| AwesomeWM | Tiling WM | LightDM |
+| Qtile | Tiling WM | LightDM |
+| BSPWM | Tiling WM | LightDM |
+| Herbstluftwm | Tiling WM | LightDM |
+| Openbox | Floating WM | LightDM |
+| Fluxbox | Floating WM | LightDM |
+| IceWM | Floating WM | LightDM |
+| MangoWM | Wayland compositor | SDDM (Wayland) |
+| No desktop | Console-only | TTY |
+
+</Accordion>
+
+Your selection is written into `abora-local.nix` and `anix.nix` after install. You can change it later with `abora desktop set <name>` or `anix set desktop <name>`.
+
+</Step>
+
+<Step title="Step 4 — Starter app bundle">
+
+Choose a starter app bundle to install after first boot. All bundles are opt-in.
+
+| Bundle | What it includes |
+|---|---|
+| Fan Favorites | A curated mix — recommended for most users |
+| Essentials | Browsers, office, media, everyday utilities |
+| Social | Chat, video calls, messaging apps |
+| Creator | Design, audio, video, creative tools |
+| Developer | IDEs, containers, terminal tools, Git |
+| Gaming | Steam, Lutris, Wine, gaming helpers |
+| System Tools | Monitoring, backup, system management |
+| None | Start clean — add apps later with `grab` |
+
+If you pick a bundle, the installer asks **when** to install the apps:
+
+- **After first boot** (recommended) — the app list is saved; apps install on first boot with `abora-apps rebuild`. This keeps the initial `nixos-install` fast.
+- **During setup** — apps are baked into the NixOS install closure. This is slower and can fail on cache misses.
+
+</Step>
+
+<Step title="Step 5 — Options">
+
+Two optional settings are offered here:
+
+**ANIX helper layer**
+
+- **Enable ANIX** (recommended) — installs the ANIX command layer for friendlier NixOS management. Adds `anix` commands to the installed system.
+- **Disable ANIX** — bare Abora and NixOS only, for users who prefer the raw Nix workflow.
+
+**GitHub CLI**
+
+- **Skip for now** — you can sign in later with `gh auth login`.
+- **Sign in now** — runs `gh auth login` and copies credentials to the installed system's home directory.
+
+</Step>
+
+<Step title="Step 6 — Preflight checks">
+
+Before any disk changes, the installer validates the full environment:
+
+- All required system commands are present (`parted`, `mkfs.vfat`, `mkfs.ext4`, `nixos-install`, etc.)
+- All installer asset files are present in `/etc/abora/`
+- The nixpkgs source path is resolvable
+- The Nix binary cache at `cache.nixos.org` is reachable
+- The selected timezone and keyboard values are valid
+
+If any check fails, the installer shows the specific item and gives you the option to fix it and re-run the checks. It will not proceed to disk selection until all required checks pass.
+
+</Step>
+
+<Step title="Step 7 — Disk selection">
+
+The installer lists all installable block devices with their size and model. Select the target disk by number.
+
+<Warning>
+Selecting a disk and confirming in the next step **permanently erases all data** on that disk. The installer creates a fresh GPT partition table and formats all partitions. There is no undo.
+</Warning>
+
+After selecting a disk you are asked to confirm a second time before any changes are made.
+
+</Step>
+
+<Step title="Step 8 — Review and install">
+
+A summary of all your choices is displayed:
+
+- Target disk (labelled as "will be erased")
+- Hostname, username, timezone, keyboard
+- Desktop environment
+- App bundle and install timing
+- ANIX enabled/disabled
+- Root account mode
+- GitHub CLI status
+
+You can **change your password** at this point without going back through the earlier steps. Once you choose **Install now**, the installer:
+
+1. Runs a final safety check
+2. Partitions and formats the disk
+3. Mounts the target at `/mnt`
+4. Generates NixOS configuration
+5. Validates the generated config with `nix-instantiate` before calling `nixos-install`
+6. Runs `nixos-install` with a live log panel showing progress, elapsed time, and recent log lines
+7. Validates the installed system structure
+8. Repairs the Limine boot menu
+9. Registers an EFI boot entry (on UEFI systems)
+10. Copies GitHub credentials if you signed in earlier
+
+A progress bar tracks each stage. If `nixos-install` fails, the installer drops to a live shell with `/tmp/abora-install.log` and the full error context available.
+
+</Step>
+
+</Steps>
+
+## Disk layout
+
+Every Abora install creates a GPT partition layout:
+
+| Partition | Size | Purpose |
+|---|---:|---|
+| BIOS boot | 1 MiB | Legacy BIOS boot support |
+| EFI system | 512 MiB | UEFI boot partition (FAT32, labelled `ABORA_EFI`) |
+| Root | Remaining space | ext4 system root (labelled `ABORA_ROOT`) |
+
+The Limine bootloader is installed with both BIOS and UEFI support. On UEFI systems, an EFI NVRAM boot entry labelled "Abora OS" is created and placed first in the boot order.
+
+## Installed configuration
+
+After install, all local system settings live in a single file:
+
+```text
+/etc/nixos/abora-local.nix
+```
+
+<Note>
+`abora-local.nix` is the file that makes your install yours. It holds hostname, timezone, keyboard layout, desktop, user account, bootloader config, and the NixOS state version. It is imported by both `configuration.nix` and `flake.nix`, so changes here apply under both the classic and flake rebuild paths.
+</Note>
+
+Example of what it looks like after a typical install:
+
+```nix
+abora.hostname = "my-pc";
+abora.timezone = "America/New_York";
+abora.desktop  = "gnome";
+```
+
+Use `abora config` for common changes without opening the Nix file directly:
+
+```sh
+abora config set hostname my-pc
+abora config set timezone America/New_York
+abora config set desktop hyprland
+abora config apply
+```
+
+## Post-install first-boot checklist
+
+After the installer finishes and the system boots for the first time, run through these steps in order:
+
+<Steps>
+
+<Step title="Confirm networking">
+Log in and verify that your network connection is active. If Wi-Fi did not reconnect automatically, use `nmtui` to connect.
+</Step>
+
+<Step title="Run `abora doctor`">
+
+```sh
+abora doctor
+```
+
+This checks Flatpak, themes, boot assets, available updates, and ANIX health. Fix anything flagged before proceeding.
+
+</Step>
+
+<Step title="Run `anix quickstart`">
+
+```sh
+anix quickstart
+```
+
+Completes the ANIX first-run setup: initialises the local Git repo in `/etc/nixos`, sets up snapshot defaults, and confirms profile availability.
+
+</Step>
+
+<Step title="Check package sources">
+
+```sh
+tinypm sources
+```
+
+Shows the availability of Nix, Flatpak, and Snap sources on the installed system.
+
+</Step>
+
+<Step title="Apply the first system update">
+
+```sh
+sudo nixos update
+```
+
+This resolves the selected Abora channel, syncs the latest project files into `/etc/nixos/abora/`, updates the local flake, and rebuilds the system. Run it when you are ready to move to the latest stable packages.
+
+</Step>
+
+</Steps>
+
+## VM-specific notes
+
+<Tabs>
+
+<Tab title="QEMU">
+
+The Abora repo includes QEMU helpers. Use them instead of constructing the QEMU command manually:
+
+```sh
+make qemu-fresh   # delete old disk image, boot the ISO — clean install test
+make qemu-disk    # boot the installed virtual hard drive without the ISO
+make qemu         # boot the latest ISO (does not delete the existing disk)
+make qemu-serial  # headless — all output in the current terminal
+```
+
+After a successful install, the VM **auto-powers off**. Run `make qemu-disk` (not `make qemu`) to boot the installed system.
+
+</Tab>
+
+<Tab title="VMware">
+
+Attach the Abora ISO as a virtual CD/DVD drive before powering on. VMware Workstation and Fusion both support UEFI VMs — use a UEFI firmware setting to match the Limine EFI boot path.
+
+After install, remove the ISO from the virtual CD/DVD drive before powering the VM back on.
+
+</Tab>
+
+<Tab title="Hyper-V">
+
+On Windows hosts, Hyper-V Generation 2 VMs use UEFI and Secure Boot by default. **Disable Secure Boot** before booting the Abora ISO — the Limine bootloader is not Secure Boot signed.
+
+In the Hyper-V Manager: VM Settings → Security → uncheck "Enable Secure Boot".
+
+After install, detach the ISO from the virtual DVD drive before starting the VM again.
+
+</Tab>
+
+<Tab title="VirtualBox">
+
+Attach the ISO as a virtual optical drive in the Storage settings. VirtualBox supports both BIOS and EFI modes — either works with Abora's Limine bootloader.
+
+Test with the default graphics settings (VMSVGA) before changing anything. Some VirtualBox graphics configurations interact poorly with display managers on first boot.
+
+After install, remove the ISO from the virtual optical drive before powering on.
+
+</Tab>
+
+</Tabs>
+
+<Tip>
+If something goes wrong after install — a failed rebuild, a broken boot, or a configuration you cannot recover from — the [Recovery guide](/recovery) covers rollback with `anix rollback nix`, repair with `abora recovery`, and how to use the live ISO as a rescue environment.
+</Tip>

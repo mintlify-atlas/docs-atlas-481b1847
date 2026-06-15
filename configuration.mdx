@@ -1,0 +1,244 @@
+---
+title: "Configuring an Installed Abora OS System"
+sidebarTitle: "Configuration"
+description: "All local settings live in /etc/nixos/abora-local.nix. Use abora config to read and change them safely, then apply with a single rebuild command."
+---
+
+Every setting that makes your Abora install yours — hostname, timezone, keyboard layout, desktop, and wallpaper — lives in a single file: `/etc/nixos/abora-local.nix`. You can edit it directly, or use the `abora config` command to read and change individual values without opening a Nix file by hand. Either way, your changes only take effect after you run `abora config apply` to trigger a rebuild.
+
+## The abora-local.nix File
+
+After installation, your local configuration file lives at:
+
+```text
+/etc/nixos/abora-local.nix
+```
+
+A minimal example of what it looks like:
+
+```nix
+abora.hostname = "my-pc";
+abora.timezone = "America/New_York";
+abora.desktop  = "gnome";
+```
+
+The full file written at install time also includes your keyboard layout, user account, hashed password, disk device, and state version. You should not change `abora.disk` or `abora.stateVersion` after the first install.
+
+## The `abora config` Command
+
+`abora config` is the recommended way to view and change settings without editing Nix directly. It reads from and writes to `abora-local.nix` and validates each value before writing.
+
+### Viewing Current Settings
+
+Running `abora config` with no arguments prints all current values:
+
+```sh
+abora config
+```
+
+The output shows hostname, timezone, keyboard (console and XKB layouts), desktop, wallpaper, user, disk, and state version. The `disk` and `state version` rows are shown in a dimmed style to indicate they should not normally be changed.
+
+### Setting Values
+
+```sh
+abora config set hostname <value>
+```
+
+Set the machine hostname. Accepts letters, numbers, and hyphens only.
+
+```sh
+abora config set timezone <value>
+```
+
+Set the system timezone. Use a value from the tz database, for example `America/New_York` or `Europe/London`.
+
+```sh
+abora config set keyboard <value>
+```
+
+Set the console (TTY) keymap, for example `us`, `de`, or `fr`. This is the keyboard layout used before any graphical session starts.
+
+```sh
+abora config set keyboard.xkb <value>
+```
+
+Set the graphical keyboard layout used in X11 and Wayland sessions. Accepts standard XKB layout codes such as `us`, `de`, or `gb`.
+
+```sh
+abora config set desktop <value>
+```
+
+Set the desktop environment or window manager. See the [Desktops](/desktops) page for the full list of valid profile IDs.
+
+```sh
+abora config set wallpaper <value>
+```
+
+Set the default wallpaper. Must be one of the bundled wallpaper filenames (see the wallpaper reference below).
+
+### Applying Changes
+
+After one or more `abora config set` calls, apply the changes with a full system rebuild:
+
+```sh
+abora config apply
+```
+
+This runs `nixos-rebuild switch --flake /etc/nixos#abora` and activates the new configuration. The system is live on the new settings as soon as the rebuild completes.
+
+## Settable Keys Reference
+
+| Key | Description | Example value |
+|---|---|---|
+| `hostname` | Machine hostname | `my-pc` |
+| `timezone` | System timezone | `America/New_York` |
+| `keyboard` | Console keymap (TTY) | `us` |
+| `keyboard.xkb` | Graphical keyboard layout | `gb` |
+| `desktop` | Desktop environment / window manager | `hyprland` |
+| `wallpaper` | Bundled wallpaper filename | `bluehorizon.png` |
+
+<Note>
+  `user` and `disk` are **read-only** through `abora config` for safety. They are shown in `abora config` output but cannot be changed with `abora config set`. If you need to change them, edit `/etc/nixos/abora-local.nix` directly — and be careful, because changing `abora.disk` can affect the bootloader install target.
+</Note>
+
+## abora-options.nix Reference
+
+The `abora.*` Nix option namespace is defined in `abora-options.nix` and included in every installed system's flake. The full set of options is documented below.
+
+<Accordion title="Identity options">
+  ### abora.hostname
+
+  | | |
+  |---|---|
+  | Type | `str` |
+  | Default | `"abora"` |
+  | Description | The machine hostname. Maps to `networking.hostName`. |
+
+  ### abora.locale
+
+  | | |
+  |---|---|
+  | Type | `str` |
+  | Default | `"en_US.UTF-8"` |
+  | Example | `"de_DE.UTF-8"` |
+  | Description | System locale. Maps to `i18n.defaultLocale`. |
+
+  ### abora.timezone
+
+  | | |
+  |---|---|
+  | Type | `str` |
+  | Default | `"UTC"` |
+  | Example | `"America/New_York"` |
+  | Description | System timezone. See `/usr/share/zoneinfo` for valid values. Maps to `time.timeZone`. |
+
+  ### abora.keyboard.console
+
+  | | |
+  |---|---|
+  | Type | `str` |
+  | Default | `"us"` |
+  | Description | Console keymap used in TTYs. Maps to `console.keyMap`. |
+
+  ### abora.keyboard.xkb
+
+  | | |
+  |---|---|
+  | Type | `str` |
+  | Default | `"us"` |
+  | Description | X11/Wayland keyboard layout. Maps to `services.xserver.xkb.layout`. |
+</Accordion>
+
+<Accordion title="User options">
+  ### abora.user.name
+
+  | | |
+  |---|---|
+  | Type | `nullOr str` |
+  | Default | `null` |
+  | Description | Primary user account name. Setting this activates the full Abora configuration — networking, bootloader, desktop, and branding only apply when a user name is set. |
+
+  ### abora.user.hashedPassword
+
+  | | |
+  |---|---|
+  | Type | `str` |
+  | Default | `""` |
+  | Description | Hashed password for the primary user. Generate a new hash with `mkpasswd`. |
+</Accordion>
+
+<Accordion title="Desktop option">
+  ### abora.desktop
+
+  | | |
+  |---|---|
+  | Type | `enum` |
+  | Default | `"gnome"` |
+  | Description | Desktop environment or window manager to enable. |
+
+  Valid values:
+
+  ```text
+  none gnome plasma hyprland sway xfce cinnamon mate budgie lxqt pantheon
+  i3 awesome openbox niri river qtile bspwm fluxbox icewm herbstluftwm cosmic mangowm
+  ```
+</Accordion>
+
+<Accordion title="Hardware options">
+  ### abora.disk
+
+  | | |
+  |---|---|
+  | Type | `nullOr str` |
+  | Default | `null` |
+  | Example | `"/dev/sda"` |
+  | Description | Install disk for the Limine bootloader. Set once at install time. Valid values include `/dev/sda`, `/dev/nvme0n1`, etc. |
+
+  ### abora.stateVersion
+
+  | | |
+  |---|---|
+  | Type | `str` |
+  | Default | `"26.05"` |
+  | Description | NixOS state version. Set once at install time — **do not change afterwards**. |
+</Accordion>
+
+<Accordion title="Wallpaper option">
+  ### abora.wallpaper
+
+  | | |
+  |---|---|
+  | Type | `enum` |
+  | Default | `"Daytime-MNT.jpg"` |
+  | Description | Default wallpaper filename shipped with Abora. The value must be one of the bundled filenames. |
+</Accordion>
+
+## Bundled Wallpapers
+
+Abora ships six wallpapers. These are the only valid values for `abora config set wallpaper` and `abora.wallpaper`:
+
+| Filename | Description |
+|---|---|
+| `Daytime-MNT.jpg` | Mountain scene in daylight — the default wallpaper |
+| `NightTime-MNT.png` | Mountain scene at night — used as the GNOME dark-mode wallpaper when Daytime-MNT is active |
+| `oceandusk.png` | Ocean at dusk |
+| `bluehorizon.png` | Blue horizon gradient |
+| `astronautwallpaper.png` | Astronaut scene |
+| `glacierreflection.png` | Glacier reflection |
+
+<Tip>
+  GNOME users get automatic dark-mode wallpaper pairing: when `abora.wallpaper` is set to `Daytime-MNT.jpg`, the dark-mode wallpaper is automatically set to `NightTime-MNT.png`. For all other wallpapers, the same file is used for both light and dark modes.
+</Tip>
+
+To change the wallpaper with the ANIX layer:
+
+```sh
+anix set wallpaper bluehorizon.png
+```
+
+Or with `abora config`:
+
+```sh
+abora config set wallpaper bluehorizon.png
+abora config apply
+```

@@ -1,72 +1,75 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mintlify Starter Kit",
+  "name": "Abora",
+  "theme": "aspen",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#1c62cc",
+    "light": "#7caff3",
+    "dark": "#1c62cc"
   },
-  "favicon": "/favicon.svg",
-  "navigation": {
-    "pages": [
-      {
-        "group": "Getting Started",
-        "pages": [
-          "index",
-          "quickstart"
-        ]
-      }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
+  "favicon": "https://media.brand.dev/852f3779-77de-47fd-aa15-35b10d99d2be.png",
   "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
+    "light": "https://media.brand.dev/bc7bb548-099d-41a7-9ab6-5e3c6d606dbd.svg",
+    "dark": "https://media.brand.dev/bc7bb548-099d-41a7-9ab6-5e3c6d606dbd.svg"
   },
   "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
     "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://app.mintlify.com"
+      "type": "github",
+      "href": "https://github.com/AnimatedGTVR/abora-os"
     }
-  },
-  "contextual": {
-    "options": [
-      "copy",
-      "view",
-      "chatgpt",
-      "claude",
-      "perplexity",
-      "mcp",
-      "cursor",
-      "vscode"
-    ]
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+      "github": "https://github.com/AnimatedGTVR/abora-os"
     }
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "installation"
+            ]
+          },
+          {
+            "group": "Using Abora",
+            "pages": [
+              "desktops",
+              "apps",
+              "updating",
+              "configuration"
+            ]
+          },
+          {
+            "group": "Tools",
+            "pages": [
+              "tools/abora-commands",
+              "tools/anix",
+              "tools/tinypm"
+            ]
+          },
+          {
+            "group": "Recovery & Support",
+            "pages": [
+              "recovery",
+              "faq"
+            ]
+          },
+          {
+            "group": "Contributing",
+            "pages": [
+              "building",
+              "contributing",
+              "security"
+            ]
+          }
+        ]
+      }
+    ]
   }
 }

@@ -1,0 +1,116 @@
+{
+  "projectType": "infrastructure",
+  "projectName": "Abora OS",
+  "projectDescription": "A NixOS-based Linux distribution that adds a guided TUI installer, 22 desktop environment choices, ANIX profile management, TinyPM app layer, and polished branding on top of NixOS.",
+  "theme": "aspen",
+  "primaryColor": "#1c62cc",
+  "lightColor": "#7caff3",
+  "darkColor": null,
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "installation"
+            ]
+          },
+          {
+            "group": "Using Abora",
+            "pages": [
+              "desktops",
+              "apps",
+              "updating",
+              "configuration"
+            ]
+          },
+          {
+            "group": "Tools",
+            "pages": [
+              "tools/abora-commands",
+              "tools/anix",
+              "tools/tinypm"
+            ]
+          },
+          {
+            "group": "Recovery & Support",
+            "pages": [
+              "recovery",
+              "faq"
+            ]
+          },
+          {
+            "group": "Contributing",
+            "pages": [
+              "building",
+              "contributing",
+              "security"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Guided Omarchy-inspired TUI installer with disk partitioning and config validation",
+    "22 desktop environments and window managers selectable at install time",
+    "ANIX v1 profile manager for NixOS profiles, snapshots, rollback, and rebuilds",
+    "TinyPM v4 app/package layer with Flatpak, Nix, and Snap support",
+    "Abora command layer for health checks, recovery, config, and desktop switching",
+    "Reproducible ISO builds via Nix flakes",
+    "Limine bootloader with Abora branding and Plymouth splash theme",
+    "Curated app bundles: Fan Favorites, Essentials, Social, Creator, Developer, Gaming",
+    "53-app catalog across 6 categories with declarative NixOS package management",
+    "Stable and unstable update channels with one-command updates and rollback"
+  ],
+  "publicApiSurface": [
+    "abora welcome",
+    "abora doctor",
+    "abora recovery",
+    "abora config",
+    "abora config set <key> <value>",
+    "abora config apply",
+    "abora desktop list",
+    "abora desktop set <profile>",
+    "abora apps catalog",
+    "abora apps add <id>",
+    "abora apps remove <id>",
+    "abora apps bundle <name>",
+    "abora update",
+    "abora support-report",
+    "anix init",
+    "anix quickstart",
+    "anix status",
+    "anix profiles",
+    "anix generations",
+    "anix switch nix <profile>",
+    "anix rollback nix",
+    "anix save",
+    "anix diff nix <profile>",
+    "anix test nix <profile>",
+    "anix boot nix <profile>",
+    "anix set <key> <value>",
+    "anix doctor",
+    "anix --gui",
+    "grab <package>",
+    "tinypm search <query>",
+    "tinypm sources",
+    "tinypm system",
+    "tinypm repair",
+    "tinypm anix <command>",
+    "tinypm abora <command>",
+    "sudo nixos update",
+    "sudo nixos rollback",
+    "nixos channel set stable|unstable",
+    "make iso",
+    "make release",
+    "make qemu-fresh",
+    "make qemu-disk",
+    "make check",
+    "make preflight"
+  ]
+}

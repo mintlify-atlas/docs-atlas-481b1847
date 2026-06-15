@@ -1,0 +1,150 @@
+---
+title: "Updating and Rolling Back Abora OS"
+sidebarTitle: "Updating"
+description: "Abora's flake-based updater syncs the latest project files, snapshots your config, updates flake inputs, and rebuilds — all with one command."
+---
+
+Abora uses a flake-based update flow on installed systems. Rather than manually editing channel URLs or running raw Nix commands, a single `sudo nixos update` resolves your selected channel, fetches the latest Abora project files, updates the flake inputs, and rebuilds the system. If something goes wrong, a matching rollback command brings the previous generation back.
+
+## Running an Update
+
+The primary update command:
+
+```sh
+sudo nixos update
+```
+
+These aliases invoke the same updater and can be used interchangeably:
+
+```sh
+update
+upgrade
+abora-update
+```
+
+<Note>
+  These commands work on installed Abora systems only. They are not available from the live ISO.
+</Note>
+
+## What the Updater Does
+
+<Steps>
+  <Step title="Resolves the selected channel">
+    The updater reads `/etc/nixos/abora/channel` to find your current channel (`stable` or `unstable`). For the `stable` channel it queries the Abora repository for the latest tagged release. For `unstable` it targets the `main` branch.
+  </Step>
+  <Step title="Offers a pre-update ANIX snapshot">
+    If ANIX is available, the updater asks whether you want to save a local snapshot of `/etc/nixos` before any files change. Accepting creates a Git commit in your config directory so you have a rollback point independent of NixOS generations.
+  </Step>
+  <Step title="Fetches the latest Abora project files">
+    The updater clones or fetches the Abora repository into `/etc/nixos/.abora-upstream`, then syncs the installed Abora files under `/etc/nixos/abora/`. This brings in updated modules, scripts, wallpapers, and bootloader assets.
+  </Step>
+  <Step title="Updates flake inputs">
+    Runs `nix flake update` against `/etc/nixos` to pull the latest nixpkgs and any other flake inputs.
+  </Step>
+  <Step title="Rebuilds the system">
+    Runs `nixos-rebuild switch --flake /etc/nixos#abora` to activate the updated configuration. The system is live on the new generation as soon as this step completes.
+  </Step>
+</Steps>
+
+## Update Channels
+
+Abora installed systems can follow either the stable release line or the live development branch.
+
+| Channel | Tracks | Best for |
+|---|---|---|
+| `stable` | Latest tagged Abora release | Most users — tested, complete builds |
+| `unstable` | `main` branch | Those who want the newest changes as they land |
+
+### Checking and Changing Channels
+
+Show the current channel:
+
+```sh
+nixos channel
+```
+
+List all available channels with descriptions:
+
+```sh
+nixos channel list
+```
+
+Switch to stable:
+
+```sh
+nixos channel set stable
+```
+
+Switch to unstable:
+
+```sh
+nixos channel set unstable
+```
+
+After changing the channel, run `sudo nixos update` to apply it.
+
+## Safer Update Habit
+
+For larger updates or before switching channels, save a local snapshot first so you have a named recovery point:
+
+```sh
+anix save "before update"
+anix status
+sudo nixos update
+```
+
+`anix save` creates a Git commit in `/etc/nixos`, warns about any potential secrets in tracked files, and shows the current profile and generation state. If the update goes wrong, you can restore from the snapshot or roll back the NixOS generation.
+
+## Rolling Back
+
+If an update breaks something, roll back to the previous system generation:
+
+```sh
+sudo nixos rollback
+```
+
+Or use ANIX for a more interactive flow:
+
+```sh
+anix generations
+anix rollback nix
+```
+
+`anix generations` lists all available generations with their timestamps and profile names. `anix rollback nix` activates the previous generation using `nixos-rebuild switch --rollback`.
+
+<Warning>
+  If you are upgrading from an older Abora v2 or pre-release build to DENALI 3.1.4, a fresh install is recommended for the best experience. The `sudo nixos update` path handles most cases, but the installer sets up the full DENALI layout cleanly in ways that migration cannot always replicate.
+</Warning>
+
+## Related Tools
+
+<CardGroup cols={2}>
+  <Card title="abora doctor" icon="stethoscope">
+    Check system health: Flatpak, themes, boot assets, update state, and ANIX status.
+
+    ```sh
+    abora doctor
+    ```
+  </Card>
+  <Card title="abora recovery" icon="rotate-left">
+    Interactive rollback, rebuild, Flathub repair, and support report collection.
+
+    ```sh
+    abora recovery
+    ```
+  </Card>
+  <Card title="anix status" icon="circle-info">
+    Show the current profile, generation number, and snapshot state at a glance.
+
+    ```sh
+    anix status
+    ```
+  </Card>
+  <Card title="tinypm sources" icon="layer-group">
+    Show app and package source status across Nix, Flatpak, and Snap layers.
+
+    ```sh
+    tinypm sources
+    ```
+  </Card>
+</CardGroup>

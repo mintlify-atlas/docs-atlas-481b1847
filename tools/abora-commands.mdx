@@ -1,0 +1,283 @@
+---
+title: "Abora Command Reference for Installed Systems"
+sidebarTitle: "Abora Commands"
+description: "Complete reference for every abora subcommand — from first-boot welcome and health checks to recovery, hardware tests, and support diagnostics."
+---
+
+The `abora` command is the distro-layer management tool for installed Abora systems. It provides a single entry point for health checks, recovery, desktop switching, app management, configuration changes, updates, and diagnostics. All `abora` subcommands delegate to dedicated scripts installed under `/etc/abora/`, so running `abora doctor` is equivalent to running `abora-doctor` directly.
+
+<Note>
+  `abora` commands only work on a fully installed Abora system. They are not
+  available on the live ISO, with the exception of `abora-installer`, which is
+  part of the installation flow itself.
+</Note>
+
+## Normal Installed Workflow
+
+After installation, most day-to-day operations follow this sequence. Use it as your starting point whenever you want to verify system state or apply updates.
+
+```sh
+abora doctor
+anix status
+anix --gui
+tinypm sources
+sudo nixos update
+```
+
+## Subcommand Reference
+
+<CardGroup cols={2}>
+  <Card title="abora welcome" icon="hand-wave">
+    First-boot welcome screen and quick-action launcher. Shows system state and
+    offers shortcuts for common first-run tasks.
+  </Card>
+  <Card title="abora doctor" icon="stethoscope">
+    Full health check of the installed system. Checks flake config, Flatpak,
+    themes, boot assets, the update channel, the desktop profile, and ANIX.
+  </Card>
+  <Card title="abora check-full" icon="magnifying-glass">
+    Collects a full diagnostic snapshot covering ANIX, TinyPM, desktop, driver,
+    and Nix logs. Useful when investigating a problem in detail.
+  </Card>
+  <Card title="abora recovery" icon="rotate-left">
+    Interactive rollback, repair, and diagnostics menu. Offers generation
+    rollback, Flathub repair, config rebuild, and log collection in one place.
+  </Card>
+  <Card title="abora desktop" icon="display">
+    View available desktop profiles or switch the active one. Changing the
+    desktop triggers a rebuild through the ANIX/Abora layer.
+  </Card>
+  <Card title="abora apps" icon="grid-2">
+    Install curated app bundles and browse the Abora app catalog. Wraps TinyPM
+    and Flatpak in a guided flow.
+  </Card>
+  <Card title="abora config" icon="sliders">
+    View or edit installed-system settings without touching Nix files by hand.
+    Covers hostname, timezone, desktop, and more.
+  </Card>
+  <Card title="abora update" icon="arrow-up-circle">
+    Update Abora. Called internally by `sudo nixos update`. Syncs the latest
+    Abora files into `/etc/nixos/abora/` and triggers a rebuild.
+  </Card>
+  <Card title="abora hardware-test" icon="microchip">
+    Run hardware readiness checks. Verifies that critical hardware components
+    are recognised and working correctly.
+  </Card>
+  <Card title="abora support-report" icon="file-lines">
+    Collect a compressed support diagnostics archive that can be shared when
+    reporting issues.
+  </Card>
+</CardGroup>
+
+---
+
+## Command Details
+
+<Accordion title="abora welcome — first-boot welcome and quick actions">
+
+`abora welcome` presents a first-boot status screen and offers shortcuts to common setup actions. Run it immediately after a fresh install to orient yourself on the system.
+
+```sh
+abora welcome
+```
+
+</Accordion>
+
+<Accordion title="abora doctor — check system health">
+
+`abora doctor` is the primary health-check command. It runs a sequence of checks and reports pass, warn, or fail for each one.
+
+```sh
+abora doctor
+```
+
+**What it checks (from `abora-doctor.sh`):**
+
+<Steps>
+  <Step title="Core config files">
+    Verifies that `flake.nix` and `abora-local.nix` exist in `/etc/nixos/`.
+  </Step>
+  <Step title="Abora scripts">
+    Confirms that required `/etc/abora/` scripts are present: `update.sh`,
+    `theme-sync.sh`, `support-report.sh`, and `anix.sh`.
+  </Step>
+  <Step title="Boot assets">
+    Checks that the Limine bootloader theme and Plymouth splash theme files
+    exist.
+  </Step>
+  <Step title="Flatpak and Flathub">
+    Confirms `flatpak` is installed and the Flathub system remote is
+    configured.
+  </Step>
+  <Step title="Update channel">
+    Reads `/etc/nixos/abora/channel` and validates the value is `stable` or
+    `unstable`.
+  </Step>
+  <Step title="Desktop profile">
+    Reads the desktop setting from `abora-local.nix` and checks it against the
+    list of supported Abora profiles.
+  </Step>
+  <Step title="ANIX doctor">
+    Runs `anix doctor` as a sub-check and logs any failures to
+    `/tmp/abora-anix-doctor.log`.
+  </Step>
+</Steps>
+
+</Accordion>
+
+<Accordion title="abora check-full — collect full diagnostic logs">
+
+`abora check-full` collects a comprehensive diagnostic snapshot. Unlike `abora doctor`, which checks health interactively, `check-full` is oriented toward gathering log output from all subsystems — ANIX, TinyPM, desktop, drivers, and Nix — in one pass.
+
+```sh
+abora check-full
+```
+
+</Accordion>
+
+<Accordion title="abora recovery — rollback, repair, and diagnostics menu">
+
+`abora recovery` opens an interactive numbered menu for common recovery tasks. It can also be invoked with a direct subcommand to skip the menu.
+
+```sh
+# Interactive menu
+abora recovery
+
+# Direct subcommands
+abora recovery rollback   # roll back previous generation via anix rollback nix --now
+abora recovery report     # run abora-support-report
+abora recovery flathub    # repair the Flathub remote
+abora recovery rebuild    # rebuild current config: nixos-rebuild switch --flake /etc/nixos#abora
+abora recovery anix       # run anix doctor
+abora recovery doctor     # run abora-doctor
+```
+
+**Menu options:**
+
+| # | Action |
+|---|---|
+| 1 | Roll back previous generation |
+| 2 | Run support report |
+| 3 | Repair Flathub remote |
+| 4 | Rebuild current config |
+| 5 | Run ANIX doctor |
+| 6 | Run Abora doctor |
+
+</Accordion>
+
+<Accordion title="abora desktop — view or switch desktop profiles">
+
+`abora desktop` lets you inspect available desktop profiles and switch between them. After switching, the system needs to be rebuilt.
+
+```sh
+abora desktop list
+abora desktop set gnome
+abora desktop set plasma
+abora desktop set hyprland
+```
+
+See the Desktops page for the full list of 22 supported environments.
+
+</Accordion>
+
+<Accordion title="abora apps — app bundle and catalog helpers">
+
+`abora apps` wraps TinyPM and Flatpak to provide access to Abora's curated app bundles. Six bundles are available at install time: Fan Favorites, Essentials, Social, Creator, Developer, and Gaming.
+
+```sh
+abora apps
+```
+
+</Accordion>
+
+<Accordion title="abora config — view or edit installed-system settings">
+
+`abora config` lets you read and change common installed-system values without editing Nix files directly. The `user` and `disk` keys are read-only through this command for safety.
+
+```sh
+# Show current config
+abora config
+
+# Change values
+abora config set hostname my-pc
+abora config set timezone America/New_York
+abora config set desktop gnome
+
+# Apply the changes
+abora config apply
+```
+
+For ANIX-managed values, use `anix set` instead. See the Configuration page for the full config reference.
+
+</Accordion>
+
+<Accordion title="abora update — update Abora">
+
+`abora update` is the update helper used internally by `sudo nixos update`. It resolves the selected Abora channel, syncs the latest project files into `/etc/nixos/abora/`, updates the local flake, and triggers a rebuild.
+
+```sh
+# Preferred way to update
+sudo nixos update
+
+# Equivalent short aliases
+update
+upgrade
+abora-update
+```
+
+Before updating, Abora creates a local ANIX snapshot so a recovery point exists if something goes wrong. You can also select your update channel:
+
+```sh
+nixos channel list
+nixos channel set stable
+nixos channel set unstable
+```
+
+</Accordion>
+
+<Accordion title="abora hardware-test — run hardware readiness checks">
+
+`abora hardware-test` runs hardware readiness checks and reports on detected components.
+
+```sh
+abora hardware-test
+```
+
+</Accordion>
+
+<Accordion title="abora support-report — collect support diagnostics archive">
+
+`abora support-report` collects a compressed archive of diagnostics that you can attach when reporting an issue. Run `abora doctor` first to understand the problem, then use this to create a shareable report.
+
+```sh
+abora support-report
+```
+
+</Accordion>
+
+---
+
+## Health Check Summary
+
+The table below maps each `abora doctor` check to the file or condition it evaluates.
+
+| Check | What is verified |
+|---|---|
+| `flake.nix exists` | `/etc/nixos/flake.nix` is present |
+| `abora-local.nix exists` | `/etc/nixos/abora-local.nix` is present |
+| `Abora update tool exists` | `/etc/abora/update.sh` is present |
+| `Abora theme sync exists` | `/etc/abora/theme-sync.sh` is present |
+| `Abora support report exists` | `/etc/abora/support-report.sh` is present |
+| `ANIX script exists` | `/etc/abora/anix.sh` is present |
+| `Bootloader theme exists` | `/etc/abora/bootloader/theme.txt` is present |
+| `Plymouth theme exists` | `/etc/abora/plymouth/abora.plymouth` is present |
+| `Flathub system remote` | `flatpak remotes --system` includes `flathub` |
+| `Update channel` | Channel file contains `stable` or `unstable` |
+| `Desktop profile` | Desktop value in `abora-local.nix` is a recognised profile |
+| `ANIX doctor` | `anix doctor` exits without failures |
+
+<Tip>
+  If `abora doctor` reports warnings about ANIX, run `anix doctor --fix` to
+  automatically create any missing config files and initialise the snapshot
+  repository.
+</Tip>

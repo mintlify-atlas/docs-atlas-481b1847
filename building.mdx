@@ -1,0 +1,217 @@
+---
+title: "Building the Abora OS ISO and Full Release Bundles"
+sidebarTitle: "Building"
+description: "How to build the Abora OS ISO, run QEMU install tests, and produce a full release bundle using Nix flakes and the Makefile entrypoint."
+---
+
+The Abora OS build system combines Nix flakes with a set of shell scripts, all exposed through a single `Makefile` entrypoint. Running `make iso` invokes `scripts/build-iso.sh`, which calls `nix build` against the flake's `packages.x86_64-linux.iso` output and copies the finished image into `out/iso/`. Everything else — TinyPM packaging, release metadata, QEMU testing — follows the same pattern of thin `make` targets delegating to dedicated scripts.
+
+## Requirements
+
+Before running any build target, you need:
+
+- **Nix** with the `nix-command` and `flakes` experimental features enabled
+- **QEMU** for local VM testing (`make qemu` and related targets)
+
+<Note>
+  If your Nix installation does not have flakes enabled system-wide, the build scripts set `NIX_CONFIG` automatically before calling `nix build`:
+
+  ```bash
+  export NIX_CONFIG="experimental-features = nix-command flakes"
+  ```
+
+  You can also set this in your shell profile or in `/etc/nix/nix.conf` to avoid it being set on every build invocation.
+</Note>
+
+## Flake Outputs
+
+The `flake.nix` exposes the following outputs:
+
+| Output | Type | Description |
+|---|---|---|
+| `packages.x86_64-linux.iso` | Package | The live ISO image |
+| `packages.x86_64-linux.modularity` | Package | Modularity game engine package |
+| `packages.x86_64-linux.mango` | Package | Mango package |
+| `nixosModules.installed-base` | Module | Installed Abora base module |
+| `nixosModules.anix` | Module | ANIX NixOS module |
+
+## Build Targets
+
+### ISO and Release
+
+<Tabs>
+  <Tab title="ISO only">
+    Builds the ISO and writes it to `out/iso/`. Use this for fast live-image and installer iteration.
+
+    ```bash
+    make iso
+    ```
+  </Tab>
+  <Tab title="Metadata only">
+    Regenerates checksums, the release manifest, and release notes without rebuilding the ISO. Useful when only text artifacts need refreshing.
+
+    ```bash
+    make metadata
+    ```
+  </Tab>
+  <Tab title="TinyPM package">
+    Builds the TinyPM release tarball using `scripts/package-tinypm.sh`.
+
+    ```bash
+    make tinypm-package
+    ```
+  </Tab>
+  <Tab title="TinyPM image">
+    Builds the TinyPM GHCR container image locally using `scripts/build-tinypm-image.sh`.
+
+    ```bash
+    make tinypm-image
+    ```
+  </Tab>
+  <Tab title="Full release">
+    Runs `iso`, `tinypm-package`, and `metadata` in sequence to produce the complete release bundle.
+
+    ```bash
+    make release
+    ```
+  </Tab>
+</Tabs>
+
+### QEMU Testing
+
+All QEMU targets delegate to `scripts/run-qemu.sh` with different environment variables controlling the boot mode.
+
+<CardGroup cols={2}>
+  <Card title="make qemu" icon="play">
+    Boot the latest ISO in a QEMU graphical window. `make qmec` and `make qemc` are aliases for this target.
+
+    ```bash
+    make qemu
+    ```
+  </Card>
+  <Card title="make qemu-fresh" icon="rotate">
+    Delete the old QEMU disk image and boot the ISO — the standard clean install test.
+
+    ```bash
+    make qemu-fresh
+    ```
+  </Card>
+  <Card title="make qemu-disk" icon="hard-drive">
+    Boot the installed QEMU virtual hard drive without attaching the ISO. Use this after completing a `qemu-fresh` install to verify the installed system.
+
+    ```bash
+    make qemu-disk
+    ```
+  </Card>
+  <Card title="make qemu-serial" icon="terminal">
+    Boot in headless mode — all QEMU output goes to the current terminal instead of a graphical window.
+
+    ```bash
+    make qemu-serial
+    ```
+  </Card>
+  <Card title="make qemu-fresh-serial" icon="terminal">
+    Combines a fresh disk wipe with headless output. Useful for CI-style unattended install testing.
+
+    ```bash
+    make qemu-fresh-serial
+    ```
+  </Card>
+</CardGroup>
+
+### Checks and Preflight
+
+<Steps>
+  <Step title="Run script checks">
+    Validates syntax, executability, and runtime behaviour of every shell script in the repo, verifies required files are tracked by git, and evaluates the Nix flake.
+
+    ```bash
+    make check
+    ```
+  </Step>
+  <Step title="Evaluate all desktop profiles">
+    Runs `nix-instantiate` against all 21 supported desktop profiles to catch configuration regressions before building the ISO.
+
+    ```bash
+    make check-desktops
+    ```
+  </Step>
+  <Step title="Run full release preflight">
+    Executes `scripts/preflight.sh`, which combines script checks, desktop evaluation, and additional release readiness assertions.
+
+    ```bash
+    make preflight
+    ```
+  </Step>
+</Steps>
+
+### Vendoring Modularity
+
+The Modularity game engine is not bundled in the repo. Use `make setup-modularity` to extract it from an official Linux zip into `vendor/modularity/`:
+
+```bash
+make setup-modularity ZIP=/path/to/Modularity-1.0.0-Linux.zip
+```
+
+<Warning>
+  The `ZIP` variable is required. Running `make setup-modularity` without it will print a usage message and exit with an error.
+</Warning>
+
+## ISO Naming Convention
+
+The build script names the output ISO using the build date and the version read from the `VERSION` file:
+
+```
+abora-YYYY.MM.DD-x86_64-v3.1.4.iso
+```
+
+For example, a build run on 2025-07-15 at version 3.1.4 produces:
+
+```
+out/iso/abora-2025.07.15-x86_64-v3.1.4.iso
+```
+
+Any previously built ISO at that version tag is removed before the new file is copied in, so `out/iso/` always holds at most one ISO per version.
+
+## Build Output Structure
+
+All generated artifacts land under `out/`. This directory is not treated as source and should not be committed.
+
+```
+out/
+├── iso/          # Built ISO files
+├── packages/     # TinyPM release tarballs and other generated packages
+├── release/      # Checksum files, release manifests, and generated release notes
+├── qemu/         # QEMU disk images and firmware state
+├── logs/         # QEMU serial logs and build logs
+└── nix/          # Nix build result symlinks (e.g. iso-result)
+```
+
+A complete `make release` run populates `out/iso/`, `out/packages/`, and `out/release/` with everything needed to publish a GitHub release:
+
+```
+out/release/
+├── SHA256SUMS-v3.1.4.txt
+├── RELEASE_MANIFEST-v3.1.4.txt
+└── RELEASE_NOTES-v3.1.4.md
+```
+
+## Project Layout Reference
+
+The following table summarises the top-level directories that are relevant to the build system. See the full layout guide in `docs/project-layout.md` for the complete picture.
+
+| Path | Purpose |
+|---|---|
+| `Makefile` | Command entrypoint for all build, check, QEMU, and release targets |
+| `flake.nix` / `flake.lock` | Nix flake entrypoint and pinned nixpkgs dependency |
+| `VERSION` | Version string consumed by `build-iso.sh` and `release-metadata.sh` |
+| `scripts/build-iso.sh` | ISO-only build path |
+| `scripts/release-metadata.sh` | Checksums, manifest, and release notes generation |
+| `scripts/package-tinypm.sh` | TinyPM release package path |
+| `scripts/run-qemu.sh` | QEMU ISO, fresh-disk, disk-only, and serial helpers |
+| `scripts/check-scripts.sh` | Repo script and runtime sanity checks |
+| `scripts/check-desktops.sh` | Evaluates every supported desktop profile |
+| `nix/profiles/live.nix` | Live ISO profile and bundled installer assets |
+| `nix/modules/installed-base.nix` | Installed Abora base module |
+| `nix/modules/anix.nix` | ANIX NixOS module |
+| `out/` | Generated build output — do not treat as source |

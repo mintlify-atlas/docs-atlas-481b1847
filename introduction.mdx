@@ -1,0 +1,135 @@
+---
+title: "Abora OS: NixOS with a Better First Experience"
+sidebarTitle: "Introduction"
+description: "Abora OS layers a guided installer, 22 desktop choices, and three purpose-built tools on top of the full NixOS base — without hiding how NixOS works."
+---
+
+Abora OS is a Linux distribution built directly on NixOS. It keeps everything that makes NixOS powerful — reproducible builds, declarative configuration, generations, rollbacks, and flakes — and wraps the rough first-experience parts in a guided installer, curated desktop profiles, app bundles, and a small set of human-friendly command layers. The goal is not to hide NixOS or replace it, but to make the start less rough so you can spend time using the system instead of fighting it.
+
+## What Abora adds to NixOS
+
+NixOS is a uniquely powerful base, but new users routinely hit the same walls: a sparse live image, no guided installer, a single default desktop path, and commands that assume you already know the flake and rebuild syntax. Abora addresses each of those points directly.
+
+| NixOS can feel like… | Abora adds… |
+|---|---|
+| A blank live system | A cleaner boot and welcome flow |
+| Manual setup right away | A guided terminal installer |
+| One main desktop path | 22 desktop and window-manager choices |
+| Long rebuild commands | Shorter `abora`, `anix`, and update commands |
+| A plain first boot | Wallpapers, themes, apps, and branding |
+| Recovery you have to figure out yourself | Snapshots, rollback helpers, and repair tools |
+
+## The current release: DENALI 3.1.4
+
+DENALI 3.1.4 is the current stable Abora release. It shipped a rebuilt Omarchy-inspired TUI installer, ANIX v1, TinyPM v4, full Abora branding across boot and desktop, and the complete 22-desktop selection matrix. Config is validated before `nixos-install` runs, failed installs drop to a live shell with logs attached, and the Limine bootloader is verified on disk before the installer declares success.
+
+## The three tool layers
+
+Abora, ANIX, and TinyPM each own a different slice of the experience. They are designed to work together but stay out of each other's way.
+
+<CardGroup cols={3}>
+  <Card title="Abora commands" icon="wrench">
+    Handle distro setup, recovery, health checks, and installed-system configuration. Key commands: `abora welcome`, `abora doctor`, `abora recovery`, `abora setup`, `abora config`.
+  </Card>
+  <Card title="ANIX v1" icon="layer-group">
+    The human layer for NixOS profiles. Covers profile switching, snapshots, rollbacks, rebuild previews, and system settings without requiring you to know the flake syntax directly.
+  </Card>
+  <Card title="TinyPM v4" icon="box">
+    The app and package layer. Provides simple install commands (`grab`, `search`), package source checks (`tinypm sources`), and bridges into Abora and ANIX when needed.
+  </Card>
+</CardGroup>
+
+### Abora commands
+
+`abora` covers first boot, recovery, desktop switching, and daily maintenance. After installation, it is the fastest way to check system health or trigger a reconfiguration without opening any Nix files by hand.
+
+```sh
+abora welcome          # first-step status and quick actions
+abora doctor           # check Flatpak, themes, boot assets, updates, ANIX
+abora recovery         # rollback, rebuild, repair Flathub, collect reports
+abora setup            # installed reconfiguration launcher
+abora config           # view or change local settings
+abora desktop list     # list available desktop profiles
+abora desktop set gnome
+```
+
+### ANIX v1
+
+ANIX maps friendly profile names to real NixOS flake configs. Running `anix switch nix gaming` is a safer, shorter front-end for `sudo nixos-rebuild switch --flake /etc/nixos#gaming`. It also handles snapshots, diffs, rollbacks, and system-level settings like hostname, wallpaper, and desktop without requiring you to edit any `.nix` file.
+
+```sh
+anix quickstart        # first-run setup
+anix status            # profile, generation, and snapshot state
+anix diff nix gaming   # preview changes before applying
+anix switch nix gaming # apply a profile
+anix rollback nix      # roll back a generation
+anix save              # local Git snapshot of /etc/nixos
+anix doctor --fix      # health checks and auto-repair
+anix set desktop gnome # change a setting without editing Nix
+```
+
+Named flake profiles available out of the box: `stable`, `minimal`, `gaming`, `creator`, `developer`.
+
+### TinyPM v4
+
+TinyPM is the app layer. On Abora it prefers Nix, but can also work with Flatpak, Snap, and common native package managers where available.
+
+```sh
+grab firefox           # install through the best available source
+tinypm sources         # show native/Flatpak/Snap availability
+tinypm system          # Abora/NixOS/ANIX bridge status
+tinypm repair          # repair-focused doctor checks
+tinypm anix status     # forward a command to ANIX
+tinypm abora doctor    # forward a command to Abora
+```
+
+## 22 desktop environments
+
+Abora DENALI 3.1.4 ships 22 desktop environments and window managers, plus a console-only option — all selectable at install time. The full matrix spans full desktop environments, tiling window managers, Wayland compositors, and lightweight options.
+
+| Desktop | Type | Display Manager |
+|---|---|---|
+| GNOME | Full DE | GDM |
+| KDE Plasma | Full DE | SDDM |
+| COSMIC | Full DE | COSMIC Greeter |
+| XFCE | Full DE | LightDM |
+| Cinnamon | Full DE | LightDM |
+| MATE | Full DE | LightDM |
+| Budgie | Full DE | LightDM |
+| LXQt | Lightweight DE | SDDM |
+| Pantheon | Full DE | LightDM |
+| Hyprland | Wayland compositor | SDDM (Wayland) |
+| Sway | Wayland compositor | SDDM (Wayland) |
+| Niri | Wayland compositor | SDDM (Wayland) |
+| River | Wayland compositor | SDDM (Wayland) |
+| i3 | Tiling WM | LightDM |
+| AwesomeWM | Tiling WM | LightDM |
+| Qtile | Tiling WM | LightDM |
+| BSPWM | Tiling WM | LightDM |
+| Herbstluftwm | Tiling WM | LightDM |
+| Openbox | Floating WM | LightDM |
+| Fluxbox | Floating WM | LightDM |
+| IceWM | Floating WM | LightDM |
+| MangoWM | Wayland compositor | SDDM (Wayland) |
+| No desktop | Console-only | TTY |
+
+<Tip>
+All 22 desktop profiles are evaluated against nixpkgs in CI before every release via `make check-desktops`. If a profile breaks, it does not ship.
+</Tip>
+
+## App bundles and Flatpak
+
+At install time you choose a starter app bundle: **Fan Favorites**, **Essentials**, **Social**, **Creator**, **Developer**, **Gaming**, or **System Tools**. The catalog holds 53 apps across 6 categories. Every bundle is opt-in — you can skip all of them and add apps later with `grab`.
+
+Flatpak is enabled on every Abora install and Flathub is added automatically on first boot. No extra setup is required.
+
+## Continue to the next steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="bolt" href="/quickstart">
+    Build the ISO and boot it in QEMU in a few minutes.
+  </Card>
+  <Card title="Installation" icon="hard-drive" href="/installation">
+    Walk through the full Denali installer step by step, including real hardware and VM notes.
+  </Card>
+</CardGroup>

@@ -1,0 +1,347 @@
+---
+title: "ANIX v1: NixOS Profile and Snapshot Manager"
+sidebarTitle: "ANIX"
+description: "ANIX wraps NixOS with shorter commands for profiles, rebuilds, rollbacks, and snapshots — all backed by the standard nixos-rebuild toolchain underneath."
+---
+
+ANIX is the human-facing management layer for Abora and NixOS. It provides shorter, safer commands for common NixOS tasks — profiles, snapshots, rebuilds, rollbacks, desktop changes, and system settings — while still calling the standard NixOS toolchain underneath. ANIX does not replace NixOS; it makes the day-to-day workflow less rough.
+
+## Mental Model
+
+ANIX operates on three levels at once:
+
+- **Config** — it edits a small `anix.nix` file in `/etc/nixos/` that declares your preferences declaratively.
+- **Snapshots** — it keeps a local Git history of `/etc/nixos/` so you always have a recovery point before risky operations.
+- **Rebuilds** — it calls `nixos-rebuild` under the hood, adding a dry-build preview step and a confirmation prompt before switching.
+
+For example, `anix switch nix gaming` is the safer front-end for:
+
+```sh
+sudo nixos-rebuild switch --flake /etc/nixos#gaming
+```
+
+ANIX adds a snapshot of any unsaved config changes, runs a dry-build preview, shows package closure diffs, and asks you to confirm before proceeding.
+
+---
+
+## Quick Start
+
+```sh
+anix init         # create anix.nix with sensible defaults
+anix quickstart   # init + snapshot repo setup + status overview
+anix status       # show current profile, generation, and snapshot state
+anix --gui        # open the graphical helper (zenity) or grouped terminal menu
+```
+
+---
+
+## Built-in Named Profiles
+
+Abora ships with five named flake profiles you can switch between without writing any Nix yourself:
+
+| Profile | Purpose |
+|---|---|
+| `stable` | Standard Abora install, follows the stable channel |
+| `minimal` | Lightweight headless or console-only configuration |
+| `gaming` | Adds Steam, GameMode, and gaming-oriented packages |
+| `creator` | Adds creative apps: Blender, Inkscape, Krita, OBS, and more |
+| `developer` | Adds developer tooling: editors, compilers, containers, and Git extras |
+
+Switch between them with `anix switch nix <profile>`.
+
+---
+
+## Core Commands
+
+### Inspection
+
+<Tabs>
+  <Tab title="Status and info">
+
+```sh
+anix status           # profile, generation, flake, Git, and snapshot state
+anix profiles         # list available flake profiles from nixosConfigurations
+anix generations      # list recent NixOS system generations
+anix show             # show current anix.nix settings
+anix edit             # open anix.nix in $EDITOR
+```
+
+  </Tab>
+  <Tab title="Settings">
+
+```sh
+anix set hostname my-pc
+anix set timezone America/New_York
+anix set keyboard us
+anix set keyboard.xkb us
+anix set desktop gnome
+anix set wallpaper bluehorizon.png
+anix set shell zsh
+```
+
+Settable keys: `hostname`, `timezone`, `keyboard`, `keyboard.xkb`, `desktop`, `wallpaper`, `shell`, `gc.days`, `gc.dates`.
+
+  </Tab>
+  <Tab title="Features">
+
+```sh
+anix enable allowUnfree
+anix enable bluetooth
+anix enable flatpak
+anix enable openssh
+anix enable garbageCollect
+anix disable thermald
+anix disable tlp
+```
+
+Toggleable features: `allowUnfree`, `experimentalNix`, `bluetooth`, `printing`, `flatpak`, `audio`, `openssh`, `thermald`, `tlp`, `tinypm`, `garbageCollect`.
+
+  </Tab>
+</Tabs>
+
+### Profile Operations
+
+<Tabs>
+  <Tab title="Preview">
+
+```sh
+anix diff nix gaming          # dry-build and show package closure changes
+anix diff nix developer       # preview what would change before switching
+```
+
+  </Tab>
+  <Tab title="Activate">
+
+```sh
+anix test nix gaming          # temp-activate (lost on reboot)
+anix boot nix gaming          # prepare for next boot, no immediate switch
+anix switch nix gaming        # switch now (with dry-build + confirmation)
+anix switch nix gaming --now  # switch immediately without a confirmation prompt
+```
+
+  </Tab>
+  <Tab title="Rollback">
+
+```sh
+anix rollback nix             # roll back to the previous generation
+anix rollback nix minimal     # rebuild and switch to a specific profile
+anix rollback nix --now       # roll back immediately without confirmation
+```
+
+  </Tab>
+</Tabs>
+
+### Snapshots and Maintenance
+
+```sh
+anix save                     # local Git snapshot of /etc/nixos
+anix save "before gaming"     # snapshot with a custom commit message
+anix gc old                   # garbage collect old generations (prompts first)
+anix doctor                   # run ANIX health checks
+anix doctor --fix             # create missing config and snapshot basics
+anix apply                    # rebuild using the current ANIX layer
+anix tinypm status            # show TinyPM per-user install state
+anix tinypm install           # install TinyPM for the current user
+```
+
+---
+
+## Snapshot Safety Model
+
+ANIX takes a conservative approach to system changes:
+
+<Steps>
+  <Step title="Snapshot unsaved config">
+    Before any `switch`, `test`, `boot`, or `rollback` operation, ANIX checks
+    for unsaved changes in `/etc/nixos/`. If changes exist, it offers to create
+    a local Git snapshot first.
+  </Step>
+  <Step title="Dry-build preview">
+    When you run `anix switch nix <profile>` without `--now`, ANIX runs a
+    `nixos-rebuild dry-build` first. This catches syntax errors and evaluates
+    the full package closure before anything is activated.
+  </Step>
+  <Step title="Closure diff">
+    After the dry-build, ANIX compares the new and current package closures
+    with `nix store diff-closures`, so you can see exactly what will be added
+    or removed.
+  </Step>
+  <Step title="Confirm and switch">
+    Only after the preview is shown does ANIX prompt for confirmation. Running
+    with `--now` skips the preview and confirmation in one step.
+  </Step>
+  <Step title="Error explanation">
+    If the rebuild fails, ANIX inspects the log for known patterns — unknown
+    options, unfree blocks, syntax errors — and prints a human-readable
+    explanation with suggestions before showing the raw log tail.
+  </Step>
+</Steps>
+
+<Note>
+  Snapshots are local Git commits by default. ANIX warns you about possible
+  secrets in your config before committing. Pushing to a remote is opt-in:
+
+  ```sh
+  anix config set snapshots.push true
+  ```
+</Note>
+
+---
+
+## Graphical Helper
+
+`anix --gui` opens an interactive helper. If a graphical session is available and `zenity` is installed, it presents a point-and-click interface. Otherwise it falls back to a grouped numbered terminal menu covering the same operations.
+
+```sh
+anix --gui
+```
+
+The GUI workspace groups actions into eight areas: Overview, Settings, Features, Profiles, Snapshots, Packages, Maintenance, and Docs.
+
+---
+
+## ANIX NixOS Module Reference
+
+ANIX ships as a NixOS module (`nix/modules/anix.nix`). All options are declared under the `anix.*` namespace.
+
+### Core
+
+| Option | Type | Default | Purpose |
+|---|---|---|---|
+| `anix.enable` | bool | — | Enable the ANIX configuration layer |
+| `anix.hostname` | string or null | `null` | Hostname override for `networking.hostName` |
+| `anix.timezone` | string or null | `null` | Timezone override, e.g. `America/New_York` |
+| `anix.keyboard.console` | string or null | `null` | TTY keymap, e.g. `us`, `de` |
+| `anix.keyboard.xkb` | string or null | `null` | Graphical desktop keyboard layout |
+| `anix.desktop` | enum or null | `null` | Desktop profile (Abora OS only) |
+| `anix.wallpaper` | string or null | `null` | Wallpaper filename (Abora OS only) |
+
+### Packages and Shell
+
+| Option | Type | Default | Purpose |
+|---|---|---|---|
+| `anix.packages` | list of packages | `[]` | Extra system packages in the ANIX layer |
+| `anix.fonts` | list of packages | `[]` | Extra font packages |
+| `anix.allowUnfree` | bool | `true` | Allow unfree packages like Discord and Steam |
+| `anix.experimentalNix` | bool | `true` | Enable `nix-command` and `flakes` |
+| `anix.shell` | `bash`, `zsh`, `fish`, or null | `null` | Default shell for normal users |
+
+### Services
+
+| Option | Type | Default | Purpose |
+|---|---|---|---|
+| `anix.services.bluetooth` | bool | `true` | Enable Bluetooth hardware support |
+| `anix.services.printing` | bool | `true` | Enable CUPS printing |
+| `anix.services.openssh` | bool | `false` | Enable the OpenSSH server |
+| `anix.services.flatpak` | bool | `true` | Enable Flatpak integration |
+| `anix.services.audio` | bool | `true` | Enable PipeWire audio (with ALSA and PulseAudio compat) |
+
+### Power
+
+| Option | Type | Default | Purpose |
+|---|---|---|---|
+| `anix.power.thermald` | bool | `true` | Enable thermald for thermal management |
+| `anix.power.tlp` | bool | `false` | Enable TLP laptop power management |
+
+### Nix Store and Garbage Collection
+
+| Option | Type | Default | Purpose |
+|---|---|---|---|
+| `anix.trustedUsers` | list of strings | `[]` | Users added to `nix.settings.trusted-users` |
+| `anix.autoOptimiseStore` | bool | `true` | Enable automatic Nix store optimisation |
+| `anix.garbageCollect.enable` | bool | `false` | Enable scheduled garbage collection |
+| `anix.garbageCollect.dates` | string | `"weekly"` | Systemd calendar expression for GC |
+| `anix.garbageCollect.options` | string | `"--delete-older-than 14d"` | Options passed to `nix-collect-garbage` |
+
+### TinyPM Bootstrap
+
+| Option | Type | Default | Purpose |
+|---|---|---|---|
+| `anix.tinypm.enable` | bool | `true` | Auto-install TinyPM on first user login via a systemd user service |
+| `anix.tinypm.flavor` | string | `"abora"` | TinyPM flavor passed to the installer |
+
+<Tip>
+  When `anix.tinypm.enable` is `true`, a `tinypm-init` systemd user service
+  runs on first login and installs TinyPM into `~/.tinypm/`. A stamp file at
+  `~/.local/state/tinypm/anix-init-done` prevents reinstallation on subsequent
+  logins.
+</Tip>
+
+---
+
+## Example: anix.nix
+
+The following is a representative `anix.nix` with common values set.
+
+```nix
+{ pkgs, ... }:
+{
+  anix.enable = true;
+
+  anix.hostname = "my-pc";
+  anix.timezone = "America/New_York";
+  anix.keyboard.console = "us";
+  anix.keyboard.xkb = "us";
+
+  anix.desktop = "gnome";
+  anix.wallpaper = "bluehorizon.png";
+
+  anix.allowUnfree = true;
+  anix.experimentalNix = true;
+  anix.shell = "zsh";
+
+  anix.tinypm.enable = true;
+
+  anix.services.bluetooth = true;
+  anix.services.printing = true;
+  anix.services.flatpak = true;
+  anix.services.audio = true;
+  anix.services.openssh = false;
+
+  anix.power.thermald = true;
+  anix.power.tlp = false;
+
+  anix.packages = with pkgs; [ ];
+  anix.fonts = with pkgs; [ inter nerd-fonts.jetbrains-mono ];
+
+  anix.trustedUsers = [ "root" "@wheel" ];
+  anix.garbageCollect.enable = true;
+  anix.garbageCollect.dates = "weekly";
+  anix.garbageCollect.options = "--delete-older-than 14d";
+}
+```
+
+After editing `anix.nix`, rebuild with:
+
+```sh
+anix apply
+```
+
+Or use the set command to change a single value and rebuild in the same step:
+
+```sh
+anix set desktop hyprland
+anix apply
+```
+
+---
+
+## ANIX Doctor Checks
+
+`anix doctor` verifies the full ANIX and NixOS management layer.
+
+| Check | What is verified |
+|---|---|
+| `nix command available` | `nix` is on `PATH` |
+| `nixos-rebuild available` | `nixos-rebuild` is on `PATH` |
+| `config directory exists` | `/etc/nixos/` is present |
+| `flake.nix exists` | `flake.nix` is in the config directory |
+| `flake outputs evaluate` | `nix flake show` succeeds |
+| `config is a Git repo` | Snapshot history is initialized |
+| `config repo is clean` | No unsaved changes |
+| `ANIX config exists` | `anix.nix` is present |
+| `ANIX config preflight` | No syntax or option errors |
+| `ANIX desktop valid` | Desktop value matches supported list |
+| `system generation profile` | `/nix/var/nix/profiles/system` exists |
+
+Run `anix doctor --fix` to automatically create the config directory, initialise the snapshot repo, and write a default `anix.nix` where safely possible.

@@ -1,0 +1,130 @@
+---
+title: "Choosing and Switching Desktop Environments"
+sidebarTitle: "Desktops"
+description: "Abora ships 22 desktop environments and window managers. Pick one at install time or switch any time with a single command and a rebuild."
+---
+
+Abora DENALI 3.1.4 gives you 22 desktop environments and window managers to choose from — ranging from full-featured DEs like GNOME and KDE Plasma to lean tiling managers like i3 and BSPWM, plus a console-only path for headless or minimal setups. You can pick your desktop during the guided installer, or change it at any time on an already-installed system using `abora desktop set` followed by a rebuild.
+
+## Available Desktops
+
+The full matrix of supported desktops, their type, and the display manager each one uses is listed below. All 22 profiles are evaluated in CI against nixpkgs before every release.
+
+### Full Desktop Environments
+
+These desktops include a complete shell, app suite defaults, and their own session manager.
+
+| Desktop | Type | Display Manager |
+|---|---|---|
+| GNOME | Full DE | GDM |
+| KDE Plasma | Full DE | SDDM |
+| COSMIC | Full DE | COSMIC Greeter |
+| XFCE | Full DE | LightDM |
+| Cinnamon | Full DE | LightDM |
+| MATE | Full DE | LightDM |
+| Budgie | Full DE | LightDM |
+| LXQt | Lightweight DE | SDDM |
+| Pantheon | Full DE | LightDM |
+
+<Note>
+  COSMIC uses its own **COSMIC Greeter** display manager rather than the shared
+  `services.displayManager` path used by every other profile. GNOME auto-login
+  settings and generic display manager options do not apply to COSMIC.
+</Note>
+
+### Wayland Compositors
+
+| Desktop | Type | Display Manager |
+|---|---|---|
+| Hyprland | Wayland compositor | SDDM (Wayland) |
+| Sway | Wayland compositor | SDDM (Wayland) |
+| Niri | Wayland compositor | SDDM (Wayland) |
+| River | Wayland compositor | SDDM (Wayland) |
+| MangoWM | Wayland compositor | SDDM (Wayland) |
+
+### Tiling Window Managers
+
+| Desktop | Type | Display Manager |
+|---|---|---|
+| i3 | Tiling WM | LightDM |
+| AwesomeWM | Tiling WM | LightDM |
+| Qtile | Tiling WM | LightDM |
+| BSPWM | Tiling WM | LightDM |
+| Herbstluftwm | Tiling WM | LightDM |
+
+### Floating Window Managers
+
+| Desktop | Type | Display Manager |
+|---|---|---|
+| Openbox | Floating WM | LightDM |
+| Fluxbox | Floating WM | LightDM |
+| IceWM | Floating WM | LightDM |
+
+### Console-Only
+
+| Desktop | Type | Display Manager |
+|---|---|---|
+| No desktop | Console-only | TTY |
+
+The `none` profile disables all graphical sessions and drops you to a TTY with auto-login enabled for your primary user. It is useful for servers, containers, or as a base for a fully custom setup.
+
+## Listing Desktop Profiles
+
+To see every supported profile name that works with `abora desktop set`, run:
+
+```sh
+abora desktop list
+```
+
+The output shows each profile ID alongside its label. Use these IDs exactly when calling `abora desktop set`.
+
+## Switching Desktops
+
+<Steps>
+  <Step title="Set the new desktop profile">
+    Pass the profile ID from `abora desktop list` to `abora desktop set`. For example, to switch to Hyprland:
+
+    ```sh
+    abora desktop set hyprland
+    ```
+
+    This writes the new value to `/etc/nixos/abora-local.nix`. No rebuild happens yet — you can make other config changes before applying.
+  </Step>
+  <Step title="Apply the change">
+    Trigger a `nixos-rebuild switch` to activate the new desktop:
+
+    ```sh
+    abora config apply
+    ```
+
+    The system will rebuild and the new desktop will be active after the rebuild completes. On most hardware this takes a few minutes on the first switch to a new profile.
+  </Step>
+  <Step title="Log out and back in">
+    Once the rebuild finishes, log out of your current session. The new display manager and desktop session will be waiting at the login screen.
+  </Step>
+</Steps>
+
+<Tip>
+  If you prefer the ANIX command layer, you can set the desktop profile with:
+
+  ```sh
+  anix set desktop hyprland
+  ```
+
+  This is equivalent to `abora desktop set hyprland` and also writes to `abora-local.nix`. Follow it with `anix apply` or `abora config apply` to rebuild.
+</Tip>
+
+## Valid Profile IDs
+
+The complete list of profile IDs accepted by `abora desktop set` and `abora config set desktop`:
+
+```text
+none gnome plasma hyprland sway xfce cinnamon mate budgie lxqt pantheon
+i3 awesome openbox niri river qtile bspwm fluxbox icewm herbstluftwm cosmic mangowm
+```
+
+<Warning>
+  Passing an unknown profile name to `abora desktop set` will print the valid
+  options and exit without making any changes. Double-check the profile ID
+  against `abora desktop list` if you get an error.
+</Warning>

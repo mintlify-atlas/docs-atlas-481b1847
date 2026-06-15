@@ -1,0 +1,344 @@
+---
+title: "Frequently Asked Questions About Abora OS"
+sidebarTitle: "FAQ"
+description: "Answers to common questions about Abora OS, DENALI 3.1.4, ANIX, TinyPM, desktop environments, Flatpak, rollbacks, and how local configuration works."
+---
+
+Whether you are evaluating Abora for the first time or working through a specific problem, the questions below cover the most common topics across installation, tooling, desktop choice, and day-to-day use. Each answer draws from the source code and release notes so the details are accurate for the current DENALI 3.1.4 release.
+
+<AccordionGroup>
+
+  <Accordion title="What is Abora OS?">
+    Abora OS is a Linux distribution built on top of NixOS, designed to make the first install and ongoing management experience simpler without hiding how NixOS works underneath.
+
+    It ships with a guided terminal installer (the Denali installer), 22 desktop environment options selectable at install time, curated starter app bundles, Abora-branded boot and desktop assets, and a small toolchain — `abora`, `anix`, and `tinypm` — that wraps common NixOS operations in shorter commands.
+
+    The NixOS foundation is unchanged. You still get reproducible builds, atomic upgrades, generations, rollbacks, flakes, and declarative configuration. Abora just makes the first steps less rough.
+  </Accordion>
+
+  <Accordion title="Is Abora just NixOS with a pretty face?">
+    Not exactly. Abora is still NixOS-based and does not fork the Nix package manager or the NixOS module system. Everything underneath is standard NixOS.
+
+    What Abora adds on top of that base is substantial:
+
+    - A guided terminal live-image installer with config validation, disk layout, user setup, desktop selection, and app bundles
+    - 22 desktop and window manager profiles evaluated in CI before every release
+    - Abora OS branding across the bootloader (Limine), Plymouth splash, wallpapers, Fastfetch, and desktop defaults
+    - The ANIX v1 profile manager with snapshot, diff, test, boot, switch, and rollback workflows
+    - TinyPM v4 with Abora, ANIX, and NixOS system bridges
+    - Flatpak and Flathub enabled by default
+    - `abora doctor`, `abora recovery`, and `abora support-report` tools
+    - Starter app catalog with 53 apps across 6 bundles
+
+    Abora does not try to hide NixOS or replace it. The goal is a better first experience on the same foundation.
+  </Accordion>
+
+  <Accordion title="What is DENALI 3.1.4?">
+    DENALI 3.1.4 is the current stable Abora release. It is the version where Abora became a complete operating system rather than an installer experiment.
+
+    Key additions in DENALI 3.1.4:
+
+    - Omarchy-inspired TUI installer with a large Abora wordmark, compact boxed fields, and numbered menus
+    - Config validation runs before `nixos-install` — bad configs fail early with a clear message
+    - Live install progress with a log panel and elapsed timer
+    - Bootloader files verified on disk before the installer declares success
+    - Full Abora visual identity across Limine, Plymouth, wallpapers, Fastfetch, and desktop defaults
+    - ANIX v1 profile manager (snapshots, diff/test/boot/switch/rollback workflows)
+    - TinyPM v4 with Abora, ANIX, and NixOS system bridges
+    - 22 desktop environments and window managers selectable at install time
+    - COSMIC desktop support with COSMIC Greeter
+    - Modularity game engine editor in the Developer bundle (PhysX, Vulkan, Mono)
+    - 53 apps across 6 starter bundles: Fan Favorites, Essentials, Social, Creator, Developer, Gaming
+
+    The release identifier `ANIX 1.0.5 DEMO` refers to the current demo-branded ANIX tooling layer shipped within DENALI 3.1.4.
+  </Accordion>
+
+  <Accordion title="What changed in v2.5 compared to DENALI 3.1.4?">
+    v2.5 was a reliability-focused release that prepared the groundwork for DENALI:
+
+    - NetworkManager integrated into the live installer
+    - Stronger installer failure handling
+    - Desktop profile evaluation checks added
+    - QEMU fresh-boot and disk-boot helpers (`make qemu-fresh`, `make qemu-disk`)
+    - `make iso` vs `make release` split so local testing does not produce a full release bundle
+
+    DENALI 3.1.4 then built on that stable base to deliver the full Abora identity, ANIX v1, TinyPM v4, COSMIC desktop support, and the complete app catalog. For most users, a fresh DENALI install is recommended over upgrading from v2.5.
+  </Accordion>
+
+  <Accordion title="How do I update Abora?">
+    On an installed Abora system, use:
+
+    ```sh
+    sudo nixos update
+    ```
+
+    Short aliases are also available:
+
+    ```sh
+    update
+    upgrade
+    abora-update
+    ```
+
+    These commands resolve the selected Abora update channel, sync the latest project files into `/etc/nixos/abora/`, update the local flake, and rebuild the system.
+
+    If something goes wrong after an update, roll back with:
+
+    ```sh
+    sudo nixos rollback
+    ```
+
+    or the shorter alias:
+
+    ```sh
+    rollback
+    ```
+
+    To see which channel the system is currently following, or to switch channels:
+
+    ```sh
+    nixos channel
+    nixos channel list
+    nixos channel set stable
+    nixos channel set unstable
+    ```
+  </Accordion>
+
+  <Accordion title="How do I build the Abora ISO?">
+    Building the ISO requires a working Nix and flakes setup. From the root of the Abora repository:
+
+    ```sh
+    make iso
+    ```
+
+    Then boot the ISO in QEMU to test it:
+
+    ```sh
+    make qemu-fresh
+    ```
+
+    After installing inside QEMU, boot the virtual disk without the ISO attached:
+
+    ```sh
+    make qemu-disk
+    ```
+
+    For a full release bundle that includes the ISO, TinyPM package, checksums, release manifest, and release notes:
+
+    ```sh
+    make release
+    ```
+
+    Other useful targets:
+
+    ```sh
+    make metadata         # refresh release metadata only
+    make tinypm-package   # build the TinyPM package by itself
+    make check            # run 79 script syntax and runtime checks
+    make check-desktops   # evaluate all 21 desktop profiles against nixpkgs
+    ```
+  </Accordion>
+
+  <Accordion title="Does TinyPM v4 replace declarative NixOS configuration?">
+    No. TinyPM is part of the Abora ecosystem and provides a friendlier app-level interface, but it does not replace the NixOS module system or `configuration.nix`/flake-based declarative configuration.
+
+    On Abora, TinyPM prefers Nix as the install backend and can also work with Flatpak, Snap, and native package managers where supported. Its main role is making common package operations less verbose:
+
+    ```sh
+    grab firefox          # install through the best available source
+    tinypm sources        # show native/Flatpak/Snap availability
+    tinypm system         # Abora/NixOS/ANIX bridge status
+    tinypm repair         # repair-focused doctor checks
+    tinypm anix status    # forward to ANIX
+    tinypm abora doctor   # forward to Abora doctor
+    ```
+
+    For adding packages permanently to the system in a declarative way, use the ANIX layer (`anix package add <pkg>`, which writes to `anix.nix`) or edit `abora-local.nix` directly.
+  </Accordion>
+
+  <Accordion title="What are the named ANIX flake profiles?">
+    Fresh Abora installs expose five named flake profiles that ANIX can switch between:
+
+    | Profile | Purpose |
+    |---|---|
+    | `stable` | Standard Abora desktop configuration |
+    | `minimal` | Minimal system without a full desktop |
+    | `gaming` | Gaming-oriented profile |
+    | `creator` | Creator-focused profile |
+    | `developer` | Developer-focused profile |
+
+    Switch between them with:
+
+    ```sh
+    anix switch nix stable
+    anix switch nix minimal
+    anix switch nix gaming
+    anix switch nix creator
+    anix switch nix developer
+    ```
+
+    ANIX will offer a snapshot of the current config before switching so you have a recovery point. You can also preview changes before committing:
+
+    ```sh
+    anix diff nix gaming
+    anix test nix gaming
+    ```
+  </Accordion>
+
+  <Accordion title="Is Modularity (the game engine editor) available in Abora?">
+    Yes. Modularity is a game engine editor developed by Tareno Labs and is included in Abora through the Developer app bundle. It is backed by a custom Nix derivation with PhysX, Vulkan, and Mono support built in.
+
+    To install it after setup, use TinyPM:
+
+    ```sh
+    grab modularity
+    ```
+
+    Alternatively, select the Developer bundle during the Denali installer flow to have Modularity included from the first boot. Note that it requires the Developer bundle to be selected at install time, or the `grab modularity` command post-install. It will not appear automatically with other bundles.
+  </Accordion>
+
+  <Accordion title="What desktop environments are supported?">
+    DENALI 3.1.4 ships with 22 desktop environments and window managers selectable at install time, plus a console-only option:
+
+    | Desktop | Type | Display Manager |
+    |---|---|---|
+    | GNOME | Full DE | GDM |
+    | KDE Plasma | Full DE | SDDM |
+    | COSMIC | Full DE | COSMIC Greeter |
+    | XFCE | Full DE | LightDM |
+    | Cinnamon | Full DE | LightDM |
+    | MATE | Full DE | LightDM |
+    | Budgie | Full DE | LightDM |
+    | LXQt | Lightweight DE | SDDM |
+    | Pantheon | Full DE | LightDM |
+    | Hyprland | Wayland compositor | SDDM (Wayland) |
+    | Sway | Wayland compositor | SDDM (Wayland) |
+    | Niri | Wayland compositor | SDDM (Wayland) |
+    | River | Wayland compositor | SDDM (Wayland) |
+    | MangoWM | Wayland compositor | SDDM (Wayland) |
+    | i3 | Tiling WM | LightDM |
+    | AwesomeWM | Tiling WM | LightDM |
+    | Qtile | Tiling WM | LightDM |
+    | BSPWM | Tiling WM | LightDM |
+    | Herbstluftwm | Tiling WM | LightDM |
+    | Openbox | Floating WM | LightDM |
+    | Fluxbox | Floating WM | LightDM |
+    | IceWM | Floating WM | LightDM |
+    | No desktop | Console-only | TTY |
+
+    All 21 graphical profiles are evaluated in CI via `make check-desktops` before every release to confirm they evaluate correctly against nixpkgs. COSMIC is new in DENALI 3.1.4 and uses the COSMIC Greeter display manager — GNOME auto-login settings do not apply to COSMIC sessions.
+  </Accordion>
+
+  <Accordion title="How do I roll back after a bad update?">
+    There are several rollback paths depending on how broken the system is.
+
+    **From a running terminal (lightest path):**
+
+    ```sh
+    rollback
+    ```
+
+    Or via ANIX:
+
+    ```sh
+    anix generations
+    anix rollback nix
+    ```
+
+    **Via the `abora recovery` menu:**
+
+    ```sh
+    abora recovery
+    ```
+
+    Then select option `1` (Roll back previous generation), which runs `anix rollback nix --now`.
+
+    **Direct subcommand:**
+
+    ```sh
+    abora recovery rollback
+    ```
+
+    **If the system does not boot:** Boot from the Abora ISO, open the live shell, mount the installed root partition to `/mnt`, inspect `/mnt/etc/nixos`, and use `nixos-enter` to rebuild from outside the broken environment. See the [Recovery](/recovery) page for the full live ISO procedure.
+  </Accordion>
+
+  <Accordion title="What is the difference between abora, anix, and tinypm?">
+    The three tools form layers in the Abora management stack:
+
+    | Tool | Layer | Main purpose |
+    |---|---|---|
+    | `abora` | OS management | Doctor checks, recovery menu, support reports, config editing, welcome flow, desktop switching |
+    | `anix` | NixOS profile management | Profile switching, generations, snapshots, diff/test/boot/switch/rollback, settings, feature flags |
+    | `tinypm` | App/package management | App installs, source status, repair, ANIX and Abora bridges |
+
+    In practice: use `abora` when something is wrong with the Abora OS layer or you need a support report. Use `anix` when you want to change the system configuration, switch desktop profiles, manage generations, or take a config snapshot. Use `tinypm` (or its `grab` command) when you want to install or remove applications.
+
+    All three can forward to each other:
+
+    ```sh
+    tinypm anix status     # runs anix status
+    tinypm abora doctor    # runs abora doctor
+    abora recovery anix    # runs anix doctor
+    abora recovery doctor  # runs abora doctor
+    ```
+  </Accordion>
+
+  <Accordion title="Can I use Flatpak on Abora?">
+    Yes. Flatpak is enabled on every Abora install and the Flathub system remote is added automatically on first boot. No extra setup is required.
+
+    If the Flathub remote goes missing or gets corrupted, repair it with:
+
+    ```sh
+    abora recovery flathub
+    ```
+
+    This re-adds the remote with:
+
+    ```sh
+    flatpak remote-add --system --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+    ```
+
+    You can also toggle Flatpak management through ANIX:
+
+    ```sh
+    anix enable flatpak
+    anix disable flatpak
+    anix apply
+    ```
+
+    Note that Flatpak and app bundle installs from the catalog require an active network connection after first boot.
+  </Accordion>
+
+  <Accordion title="Where does local configuration live?">
+    After installation, all machine-specific settings live in:
+
+    ```sh
+    /etc/nixos/abora-local.nix
+    ```
+
+    A typical `abora-local.nix` looks like:
+
+    ```nix
+    abora.hostname = "my-pc";
+    abora.timezone = "America/New_York";
+    abora.desktop  = "gnome";
+    ```
+
+    You can edit this file directly, or use `abora config` for common changes without opening the Nix file by hand:
+
+    ```sh
+    abora config
+    abora config set hostname my-pc
+    abora config set timezone America/New_York
+    abora config set desktop hyprland
+    abora config apply
+    ```
+
+    The ANIX layer has its own config file at `/etc/nixos/anix.nix`, managed through `anix set`, `anix enable`, `anix disable`, and `anix edit`. ANIX tool state (such as snapshot push behavior) is stored in `/etc/nixos/.anix/config`.
+
+    <Note>
+      `user` and `disk` values in `abora-local.nix` are read-only through `abora config` for safety. Edit `abora-local.nix` directly only when you actually mean to change those values.
+    </Note>
+  </Accordion>
+
+</AccordionGroup>

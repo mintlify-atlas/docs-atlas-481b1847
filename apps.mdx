@@ -1,0 +1,260 @@
+---
+title: "Installing and Managing Apps on Abora OS"
+sidebarTitle: "Apps"
+description: "Choose a starter bundle at install time, then add, remove, or browse 53 catalog apps post-install with abora apps or the grab quick-install shortcut."
+---
+
+Abora uses a two-layer approach to app management. At install time the guided installer offers six curated starter bundles — you pick one (or none) and those apps land on the system before you ever log in. After install, the `abora apps` command lets you browse, search, add, and remove apps from a catalog of 53 titles across 6 categories, with each change backed by a proper `nixos-rebuild switch` so your system stays reproducible.
+
+## Starter Bundles
+
+The installer presents these bundles as opt-in choices. Each bundle maps to a named group in the app catalog, except Fan Favorites which pulls apps marked as favorites across all categories. A hidden System bundle is always available but not offered as a standalone choice at install time.
+
+<CardGroup cols={2}>
+  <Card title="Fan Favorites" icon="star">
+    The most popular picks across all categories — a good general-purpose starting point.
+  </Card>
+  <Card title="Essentials" icon="box">
+    Browser, media player, office suite, email client, and password manager.
+  </Card>
+  <Card title="Social" icon="comments">
+    Telegram, Signal, Discord, Element, Slack, and Zoom.
+  </Card>
+  <Card title="Creator" icon="palette">
+    OBS Studio, GIMP, Krita, Inkscape, Kdenlive, Audacity, Blender, and more.
+  </Card>
+  <Card title="Developer" icon="code">
+    Git, GitHub CLI, VSCodium, Neovim, tmux, Docker, Lazygit, and Modularity.
+  </Card>
+  <Card title="Gaming" icon="gamepad">
+    Steam, Lutris, Heroic Games Launcher, Bottles, MangoHud, and GameMode.
+  </Card>
+</CardGroup>
+
+<Note>
+  **Modularity** — a game engine editor with PhysX, Vulkan, and Mono support by Tareno Labs — is included in the Developer bundle. You can also install it post-install with `grab modularity` or `abora apps add modularity`.
+</Note>
+
+## The App Catalog
+
+The full catalog contains **53 apps across 6 categories**: Essentials, Social, Creator, Developer, Gaming, and System. Browse it any time with:
+
+```sh
+abora apps catalog
+```
+
+## `abora apps` Subcommands
+
+All app management after install goes through `abora apps`. The table below covers every subcommand.
+
+<Accordion title="abora apps catalog — browse the full catalog">
+  Prints all 53 apps grouped by category, with each app's ID, name, and description. Apps marked as Fan Favorites are shown with a ★.
+
+  ```sh
+  abora apps catalog
+  ```
+</Accordion>
+
+<Accordion title="abora apps search — find apps by keyword">
+  Searches app IDs, names, and descriptions. Case-insensitive.
+
+  ```sh
+  abora apps search <term>
+  ```
+
+  Example:
+
+  ```sh
+  abora apps search editor
+  ```
+</Accordion>
+
+<Accordion title="abora apps info — show details for one app">
+  Prints the app's ID, full name, category, Nix package expression, and whether it is currently installed.
+
+  ```sh
+  abora apps info <app-id>
+  ```
+
+  Example:
+
+  ```sh
+  abora apps info vscodium
+  ```
+</Accordion>
+
+<Accordion title="abora apps installed — list what is installed">
+  Shows every app currently managed by Abora on this system, including the ID, name, category, and description.
+
+  ```sh
+  abora apps installed
+  ```
+</Accordion>
+
+<Accordion title="abora apps add — install one or more apps">
+  Adds one or more apps by ID, writes them to the app list, and triggers a rebuild.
+
+  ```sh
+  abora apps add <app-id...>
+  ```
+
+  Examples:
+
+  ```sh
+  abora apps add firefox
+  abora apps add neovim tmux lazygit
+  ```
+</Accordion>
+
+<Accordion title="abora apps remove — uninstall apps">
+  Removes one or more apps by ID and triggers a rebuild.
+
+  ```sh
+  abora apps remove <app-id...>
+  ```
+
+  Example:
+
+  ```sh
+  abora apps remove discord
+  ```
+</Accordion>
+
+<Accordion title="abora apps bundle — install a curated bundle">
+  Adds every app in a named bundle to the current app list and rebuilds.
+
+  ```sh
+  abora apps bundle <name>
+  ```
+
+  Valid bundle names: `favorites`, `essentials`, `social`, `creator`, `developer`, `gaming`, `system`.
+
+  Example:
+
+  ```sh
+  abora apps bundle gaming
+  ```
+</Accordion>
+
+<Accordion title="abora apps rebuild — apply the list without changing it">
+  Re-renders the Nix module from the current app list and runs `nixos-rebuild switch`. Use this to force a rebuild after manually editing the app list file.
+
+  ```sh
+  abora apps rebuild
+  ```
+</Accordion>
+
+## Flags
+
+Both `abora apps add` and `abora apps remove` accept two optional flags:
+
+| Flag | Effect |
+|---|---|
+| `--no-rebuild` | Write the updated app list but skip the `nixos-rebuild switch`. Useful when batching several changes. |
+| `--dry-run` | Print what would change without touching anything. Implies `--no-rebuild`. |
+
+<Tip>
+  Use `--dry-run` to preview exactly which packages would be added or removed before committing:
+
+  ```sh
+  abora apps add blender kdenlive --dry-run
+  ```
+</Tip>
+
+<Note>
+  `abora apps add` (and `remove`, `bundle`) triggers `nixos-rebuild switch` automatically after writing the app list. Pass `--no-rebuild` if you want to queue multiple changes and rebuild only once at the end with `abora apps rebuild`.
+</Note>
+
+## TinyPM Quick-Install with `grab`
+
+For one-off installs without going through the full `abora apps` flow, TinyPM's `grab` command finds the best available source (Nix, Flatpak, Snap) and installs it:
+
+```sh
+grab firefox
+```
+
+`grab` is the fastest path for apps that are not in the Abora catalog, or when you just want something installed without caring about the source layer.
+
+## App Catalog Reference
+
+<Tabs>
+  <Tab title="Essentials">
+    | ID | Name | Description |
+    |---|---|---|
+    | `firefox` | Firefox | Fast web browser for everyday browsing ★ |
+    | `chromium` | Chromium | Open-source web browser without Google extras |
+    | `vlc` | VLC | Video and audio player that handles almost anything ★ |
+    | `mpv` | MPV | Lightweight media player for video and audio ★ |
+    | `libreoffice` | LibreOffice | Office suite for documents, sheets, and slides ★ |
+    | `thunderbird` | Thunderbird | Email and calendar client ★ |
+    | `keepassxc` | KeePassXC | Offline password manager with browser integration ★ |
+    | `bitwarden` | Bitwarden | Cloud password manager with cross-device sync |
+    | `qbittorrent` | qBittorrent | BitTorrent client with a clean interface |
+    | `calibre` | Calibre | E-book library manager and reader |
+  </Tab>
+  <Tab title="Social">
+    | ID | Name | Description |
+    |---|---|---|
+    | `telegram` | Telegram Desktop | Cloud messaging app with desktop sync ★ |
+    | `signal` | Signal Desktop | Private messaging for secure chats ★ |
+    | `discord` | Discord | Voice, video, and text chat for communities ★ |
+    | `element` | Element | Matrix chat client for open, federated messaging |
+    | `slack` | Slack | Team communication and workspace chat |
+    | `zoom` | Zoom | Video conferencing and meetings |
+  </Tab>
+  <Tab title="Creator">
+    | ID | Name | Description |
+    |---|---|---|
+    | `obs` | OBS Studio | Recording and streaming studio ★ |
+    | `gimp` | GIMP | Image editor for photo and graphic work ★ |
+    | `krita` | Krita | Digital painting and art studio ★ |
+    | `inkscape` | Inkscape | Vector design and illustration app |
+    | `kdenlive` | Kdenlive | Video editor for clips and timelines |
+    | `audacity` | Audacity | Audio recorder and editor ★ |
+    | `blender` | Blender | 3D modelling, animation, and rendering |
+    | `handbrake` | HandBrake | Video converter and transcoder |
+    | `darktable` | Darktable | RAW photo editor and digital darkroom |
+    | `rawtherapee` | RawTherapee | Free and powerful RAW photo processor |
+  </Tab>
+  <Tab title="Developer">
+    | ID | Name | Description |
+    |---|---|---|
+    | `git` | Git | Version control and source history |
+    | `gh` | GitHub CLI | GitHub from the terminal and Abora tools ★ |
+    | `neovim` | Neovim | Terminal editor for code and writing |
+    | `helix` | Helix | Modern terminal editor with strong defaults |
+    | `vscodium` | VSCodium | Graphical code editor based on VS Code ★ |
+    | `zed` | Zed | Fast collaborative code editor |
+    | `lapce` | Lapce | Fast native code editor written in Rust |
+    | `tmux` | tmux | Terminal multiplexer for persistent sessions |
+    | `alacritty` | Alacritty | Fast GPU-accelerated terminal emulator |
+    | `ghostty` | Ghostty | Fast, feature-rich terminal built in Zig |
+    | `lazygit` | Lazygit | Terminal UI for git commands |
+    | `docker` | Docker | Container engine for building and running apps |
+    | `filezilla` | FileZilla | FTP and SFTP file transfer client |
+    | `remmina` | Remmina | Remote desktop client for RDP, VNC, and SSH |
+    | `modularity` | Modularity | Game engine editor for 2D and 3D projects |
+  </Tab>
+  <Tab title="Gaming">
+    | ID | Name | Description |
+    |---|---|---|
+    | `steam` | Steam | Valve's game store and launcher for Linux ★ |
+    | `lutris` | Lutris | Game manager for native, Wine, and emulated titles ★ |
+    | `heroic` | Heroic Games Launcher | Epic Games and GOG launcher for Linux ★ |
+    | `bottles` | Bottles | Run Windows apps and games via Wine |
+    | `mangohud` | MangoHud | In-game performance overlay for FPS, temps, and more |
+    | `gamemode` | GameMode | Optimise system performance while games are running |
+  </Tab>
+  <Tab title="System">
+    | ID | Name | Description |
+    |---|---|---|
+    | `gparted` | GParted | Graphical disk partition editor |
+    | `gnome-disk-utility` | Disks | Manage drives, partitions, and disk images |
+    | `timeshift` | Timeshift | System snapshot and restore tool ★ |
+    | `flameshot` | Flameshot | Screenshot tool with annotation support ★ |
+    | `btop` | btop | Beautiful resource monitor for CPU, RAM, and network ★ |
+    | `missioncenter` | Mission Center | GNOME-style system monitor with graphs |
+  </Tab>
+</Tabs>
+
+★ = Fan Favorites bundle
