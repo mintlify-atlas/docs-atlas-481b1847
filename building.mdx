@@ -34,6 +34,7 @@ The `flake.nix` exposes the following outputs:
 | `packages.x86_64-linux.mango` | Package | Mango package |
 | `nixosModules.installed-base` | Module | Installed Abora base module |
 | `nixosModules.anix` | Module | ANIX NixOS module |
+| `overlays.default` | Overlay | nixpkgs overlay adding `modularity` and `mango` packages |
 
 ## Build Targets
 
@@ -156,6 +157,10 @@ make setup-modularity ZIP=/path/to/Modularity-1.0.0-Linux.zip
 <Warning>
   The `ZIP` variable is required. Running `make setup-modularity` without it will print a usage message and exit with an error.
 </Warning>
+
+<Note>
+  `setup-modularity` is not declared in the `.PHONY` list in the Makefile. It is a real Makefile target and works correctly, but it is not protected against a file named `setup-modularity` existing in the repo root. In practice this is not an issue, but it is worth knowing if you are working on the Makefile itself.
+</Note>
 
 ## ISO Naming Convention
 

@@ -1,5 +1,5 @@
 ---
-title: "Installing and Managing Apps on Abora OS"
+title: "Installing and Managing Apps on Your Abora OS System"
 sidebarTitle: "Apps"
 description: "Choose a starter bundle at install time, then add, remove, or browse 53 catalog apps post-install with abora apps or the grab quick-install shortcut."
 ---
@@ -117,6 +117,21 @@ All app management after install goes through `abora apps`. The table below cove
 
   ```sh
   abora apps remove discord
+  ```
+</Accordion>
+
+<Accordion title="abora apps set — replace the full app list">
+  Replaces the entire managed app list with the specified app IDs. Any previously installed apps not included in the new list are removed. Pass no IDs to clear the list entirely. Triggers a rebuild unless `--no-rebuild` is given.
+
+  ```sh
+  abora apps set <app-id...>
+  ```
+
+  Examples:
+
+  ```sh
+  abora apps set firefox vlc thunderbird
+  abora apps set --no-rebuild neovim tmux
   ```
 </Accordion>
 

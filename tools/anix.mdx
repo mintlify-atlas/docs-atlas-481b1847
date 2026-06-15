@@ -1,5 +1,5 @@
 ---
-title: "ANIX v1: NixOS Profile and Snapshot Manager"
+title: "ANIX v1: Abora NixOS Profile Manager and Snapshot Tool"
 sidebarTitle: "ANIX"
 description: "ANIX wraps NixOS with shorter commands for profiles, rebuilds, rollbacks, and snapshots — all backed by the standard nixos-rebuild toolchain underneath."
 ---
@@ -64,6 +64,8 @@ anix profiles         # list available flake profiles from nixosConfigurations
 anix generations      # list recent NixOS system generations
 anix show             # show current anix.nix settings
 anix edit             # open anix.nix in $EDITOR
+anix wallpapers       # list wallpapers available for anix set wallpaper
+anix docs             # show local documentation paths for ANIX, TinyPM, and Abora
 ```
 
   </Tab>
@@ -208,7 +210,7 @@ ANIX ships as a NixOS module (`nix/modules/anix.nix`). All options are declared 
 
 | Option | Type | Default | Purpose |
 |---|---|---|---|
-| `anix.enable` | bool | — | Enable the ANIX configuration layer |
+| `anix.enable` | bool | `false` | Enable the ANIX configuration layer |
 | `anix.hostname` | string or null | `null` | Hostname override for `networking.hostName` |
 | `anix.timezone` | string or null | `null` | Timezone override, e.g. `America/New_York` |
 | `anix.keyboard.console` | string or null | `null` | TTY keymap, e.g. `us`, `de` |

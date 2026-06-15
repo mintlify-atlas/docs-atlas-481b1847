@@ -1,5 +1,5 @@
 ---
-title: "Frequently Asked Questions About Abora OS"
+title: "Frequently Asked Questions About Abora OS and DENALI"
 sidebarTitle: "FAQ"
 description: "Answers to common questions about Abora OS, DENALI 3.1.4, ANIX, TinyPM, desktop environments, Flatpak, rollbacks, and how local configuration works."
 ---
@@ -135,7 +135,7 @@ Whether you are evaluating Abora for the first time or working through a specifi
     make metadata         # refresh release metadata only
     make tinypm-package   # build the TinyPM package by itself
     make check            # run 79 script syntax and runtime checks
-    make check-desktops   # evaluate all 21 desktop profiles against nixpkgs
+    make check-desktops   # evaluate all 22 desktop profiles against nixpkgs
     ```
   </Accordion>
 
@@ -226,7 +226,7 @@ Whether you are evaluating Abora for the first time or working through a specifi
     | IceWM | Floating WM | LightDM |
     | No desktop | Console-only | TTY |
 
-    All 21 graphical profiles are evaluated in CI via `make check-desktops` before every release to confirm they evaluate correctly against nixpkgs. COSMIC is new in DENALI 3.1.4 and uses the COSMIC Greeter display manager — GNOME auto-login settings do not apply to COSMIC sessions.
+    All 22 graphical profiles are evaluated in CI via `make check-desktops` before every release to confirm they evaluate correctly against nixpkgs. COSMIC is new in DENALI 3.1.4 and uses the COSMIC Greeter display manager — GNOME auto-login settings do not apply to COSMIC sessions.
   </Accordion>
 
   <Accordion title="How do I roll back after a bad update?">
